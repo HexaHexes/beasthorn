@@ -164,9 +164,12 @@ One horn, drawn once, used everywhere — so the mark, the banner and the in-gam
 | --- | --- |
 | `src/main/resources/META-INF/icon.png` (256×256) | the in-game mod icon, shown in the Mods menu |
 | `icon/beasthorn-icon-512.png` | the CurseForge project icon |
+| `icon/beasthorn-icon-512-named.png` | the CurseForge icon with the mod name in Minecraft's font |
 | `icon/beasthorn-social-preview.png` (1280×640) | the GitHub social preview |
+| `icon/beasthorn-social-preview-named.png` | the same banner with the wordmark set in Minecraft's font |
 | `icon/beasthorn-icon.svg`, `icon/beasthorn-banner.svg` | the vector sources |
-| `icon/generate.ps1` | regenerates the SVGs and every PNG from them |
+| `icon/generate.ps1` | regenerates both SVGs |
+| `icon/generate-named.ps1` | regenerates both `-named.png` copies |
 
 The horn outline is computed rather than hand-placed: the script sweeps a tapering width along a centerline, which is what guarantees the body converges to a real tip and the mouth matches its own opening. The gold band is clipped to the horn's silhouette so it reads as wrapping rather than resting on top.
 
@@ -174,6 +177,12 @@ Re-run it with:
 
 ```
 powershell -File icon/generate.ps1
+```
+
+The `-named.png` copies are separate because the name is drawn with Minecraft's **actual** font rather than a lookalike — a 128×128 atlas of 8×8 glyph cells with each glyph's width measured from its own inked pixels, exactly as the game measures it, so the text is metrically identical to what renders in-game. On the square icon the name sits at top centre, clear of the three orbs; on the banner it takes the slot the serif wordmark occupied, so there is never a second title crossing the horn. Both are derived from the shipped PNGs rather than a fresh browser render, which keeps repeated runs byte-identical.
+
+```
+powershell -File icon/generate-named.ps1
 ```
 
 The three orbs are tinted in three different colours on purpose — the horn takes *any* mob, and the orbs are what carry that mob's colour in-game.

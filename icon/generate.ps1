@@ -6,7 +6,7 @@
 # Note: all math is inlined. Passing @() into a function's positional params
 # unrolls it across them, which is what broke the earlier version.
 
-$out = "$PSScriptRoot\icon512.svg"
+$out = "$PSScriptRoot\beasthorn-icon.svg"
 
 $cx0 = 150.0; $cy0 = 138.0     # mouth centre
 $cx1 = 310.0; $cy1 = 186.0
@@ -140,7 +140,7 @@ $horn
 Write-Output ("  wrote " + $out)
 
 # ---- banner: same horn, wordmark beside it ----
-$bannerOut = "$PSScriptRoot\banner1280.svg"
+$bannerOut = "$PSScriptRoot\beasthorn-banner.svg"
 $banner = @"
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
   <defs>
