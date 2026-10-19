@@ -156,6 +156,32 @@ Missing any of these twelve produces a Gradle compile failure, not a silent part
 
 ---
 
+## Project art
+
+One horn, drawn once, used everywhere — so the mark, the banner and the in-game icon can never drift apart:
+
+| File | Used for |
+| --- | --- |
+| `src/main/resources/META-INF/icon.png` (256×256) | the in-game mod icon, shown in the Mods menu |
+| `icon/beasthorn-icon-512.png` | the CurseForge project icon |
+| `icon/beasthorn-social-preview.png` (1280×640) | the GitHub social preview |
+| `icon/beasthorn-icon.svg`, `icon/beasthorn-banner.svg` | the vector sources |
+| `icon/generate.ps1` | regenerates the SVGs and every PNG from them |
+
+The horn outline is computed rather than hand-placed: the script sweeps a tapering width along a centerline, which is what guarantees the body converges to a real tip and the mouth matches its own opening. The gold band is clipped to the horn's silhouette so it reads as wrapping rather than resting on top.
+
+Re-run it with:
+
+```
+powershell -File icon/generate.ps1
+```
+
+The three orbs are tinted in three different colours on purpose — the horn takes *any* mob, and the orbs are what carry that mob's colour in-game.
+
+All of this is drawn from the same horn silhouette, so it sits under the attribution in [`NOTICE.md`](NOTICE.md).
+
+---
+
 ## Credits
 
 - Horn model and texture adapted from **Ice and Fire** / **Ice and Fire CE** (LGPL). A copy of the horn texture is embedded so the item still renders if Ice and Fire is not installed. Full attribution and the list of modifications are in [`NOTICE.md`](NOTICE.md).
