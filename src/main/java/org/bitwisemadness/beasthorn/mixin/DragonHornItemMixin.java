@@ -1,34 +1,50 @@
 package org.bitwisemadness.beasthorn.mixin;
 
+import com.iafenvoy.iceandfire.item.component.DragonHornComponent;
 import com.llamalad7.mixinextras.sugar.Local;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import org.bitwisemadness.beasthorn.registry.ModGameRules;
+import org.bitwisemadness.beasthorn.util.IafHornAccess;
+import org.bitwisemadness.beasthorn.util.TooltipHelper;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.List;
+
 /**
- * Makes Ice and Fire CE's own Dragon Horn transfer dragon ownership to whoever
- * releases it, gated behind the {@code beastHornDragonOwnershipTransfer}
- * gamerule (default off).
+ * Two changes to Ice and Fire CE's own Dragon Horn.
  *
- * <p>This mixin only targets IaF CE's Dragon Horn — the Beast Horn is entirely
+ * <p>The mixin only targets IaF CE's Dragon Horn — the Beast Horn is entirely
  * separate and does not depend on it. The mixin config it ships in is declared
  * with {@code requiredMods=["iceandfire"]} and additionally guarded by
  * {@link org.bitwisemadness.beasthorn.mixin.IafMixinPlugin}, so it is skipped
  * entirely when IaF CE is not installed.</p>
  *
- * <p>Injection point: the single {@code Level#addFreshEntity} call inside
- * {@code DragonHornItem#useOn}. Verified against IaF CE 2.1.4 bytecode — the
- * dragon is in local slot 6 at that point, and it is the only addFreshEntity in
- * the method. Injecting just before it means the dragon joins the world already
- * owned by the releasee, so the first client sync carries the right owner.</p>
+ * <p><b>Ownership on release</b> — injected at the single {@code
+ * Level#addFreshEntity} call inside {@code useOn}, so a released dragon joins
+ * the world already owned by the releasee.</p>
+ *
+ * <p><b>Tooltip</b> — {@code appendHoverText} is cancelled at its head and
+ * rewritten, so the Dragon Horn shows the same labelled readout as the Beast
+ * Horn (Name, Race, Owner, Health, EP) followed by IaF's own Gender and
+ * Stage/Days lines. Replacing rather than appending is what lets us control the
+ * ordering; the cost is coupling to IaF's lang keys and AgeTicks bands, both
+ * handled in {@link TooltipHelper}.</p>
  */
 @Mixin(value = com.iafenvoy.iceandfire.item.DragonHornItem.class, remap = true)
 public abstract class DragonHornItemMixin {
@@ -79,5 +95,56 @@ public abstract class DragonHornItemMixin {
         // mod's own proven "make this player the owner" sequence.
         dragon.setTame(true, true);
         dragon.tame(player);
+    }
+
+    /**
+     * Replace IaF's tooltip with the shared labelled readout plus IaF's own
+     * gender and stage lines.
+     *
+     * <p>Two of IaF's three states are taken over rather than replicated. With
+     * no stored dragon we emit the Beast Horn's empty pair of lines, because
+     * IaF emits nothing at all there. With one, we emit our labelled block plus
+     * IaF's own gender and stage lines. Only when the entity type no longer
+     * resolves — a data pack removed the mob — do we stand aside and let IaF's
+     * method run, since our block cannot render a race for a type that does not
+     * exist.</p>
+     *
+     * <p>IaF's {@code super.appendHoverText} is skipped along with the rest, but
+     * that is a no-op: {@code Item#appendHoverText} has an empty body.</p>
+     */
+    @Inject(method = "appendHoverText", at = @At("HEAD"), cancellable = true)
+    private void beasthorn$replaceTooltip(
+            ItemStack stack,
+            Item.TooltipContext context,
+            List<Component> tooltip,
+            TooltipFlag flag,
+            CallbackInfo cir) {
+
+        DragonHornComponent horn = IafHornAccess.read(stack);
+        if (horn == null) {
+            // Empty horn. IaF emits nothing here, so take it over rather than
+            // standing aside - which is what left the Dragon Horn as the only
+            // item in the pack with a blank tooltip.
+            TooltipHelper.addEmptyDragonLines(tooltip);
+            cir.cancel();
+            return;
+        }
+
+        CompoundTag data = horn.entityData();
+        if (data == null || data.isEmpty()) {
+            return;
+        }
+
+        ResourceLocation typeId = horn.entityType();
+        if (typeId == null || BuiltInRegistries.ENTITY_TYPE.getOptional(typeId).isEmpty()) {
+            return;
+        }
+
+        // Our block first - identical to the Beast Horn's - then IaF's own two
+        // lines, so both horns read the same at a glance.
+        TooltipHelper.addLines(tooltip, typeId, data, context.registries());
+        TooltipHelper.addDragonLines(tooltip, data);
+
+        cir.cancel();
     }
 }

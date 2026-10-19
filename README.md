@@ -39,13 +39,11 @@ Because the mob lives entirely in the item's NBT, handing the horn to another pl
 
 Beast Horn **does not work with Ice and Fire's dragons**. They keep using IaF's own Dragon Horn, which stores dragon-specific data the Beast Horn does not reproduce.
 
-The horn is blacklisted by default against:
+The horn is blacklisted by default against Ice and Fire's three dragons — `iceandfire:fire_dragon`, `iceandfire:ice_dragon`, `iceandfire:lightning_dragon` — **and 71 bosses**, covering every boss-bearing mod in the pack so a horn cannot be used to pocket an encounter.
 
-- `iceandfire:fire_dragon`
-- `iceandfire:ice_dragon`
-- `iceandfire:lightning_dragon`
+A capture attempt on a blacklisted mob simply refuses, naming the mob.
 
-This list is editable in the server config.
+The full list is editable in the server config, written to `config/beasthorn-server.toml` the first time a world is opened.
 
 ### Dragon ownership transfer (optional mixin)
 
@@ -82,10 +80,14 @@ A filled horn shows its contents, always labelled and always in this order:
 | Line | Shown |
 | --- | --- |
 | `Name:` | Only if the mob has a custom name |
-| `Race:` | Always — the mob's entity type |
+| `Race:` | Always — the mob's variant, then its entity type |
 | `Owner:` | Only if the mob has an owner |
 | `Health:` | Always |
 | `EP:` | Only if Tensura is loaded **and** the mob has EP |
+
+Where a mob has a **variant**, it is prepended to the race rather than shown in brackets — `Red Fang Direwolf`, `Emerald Fire Dragon`, `Dark Brown One Eyed Owl`. A species word is dropped when the variant already names the animal, so a `Direwolf` variant reads as `Direwolf` rather than `Direwolf Direwolf`. Hippogryphs are the far end of that rule: their variant already names the animal, so it stands in **for** the race entirely — `Black Hippogryph`, not `Black Hippogryph Hippogryph`.
+
+Variant display covers Ice and Fire (dragons, sea serpents, hippogryphs, trolls, death worms), Tensura, Mobs of Mythology and Mysticism — twenty species in all. It is purely presentational: a mob whose variant cannot be read — an unknown id, or a mod that has since been removed — still stores, transports and releases correctly. It simply reads as the plain race name.
 
 An empty horn instead shows a hint telling you what to do with it.
 
@@ -121,8 +123,12 @@ Tensura is **optional**. Without it, the addon loads normally and simply omits t
 
 ### Optional
 
-- **Ice and Fire CE** — enables the Dragon Horn ownership mixin
-- **Tensura** — enables the EP tooltip and Tensura ownership transfer
+- **Ice and Fire CE** — enables the Dragon Horn ownership mixin, and the IaF variant names
+- **Tensura** — enables the EP tooltip, Tensura ownership transfer, and the Tensura variant names
+- **Mobs of Mythology** — enables the drake and sporeling variant names
+- **Mysticism** — enables the okami variant names
+
+Each is optional independently. Without one, Beast Horn loads normally and simply omits that mod's contribution — its variant names read as the plain race, nothing more.
 
 ---
 
@@ -134,6 +140,20 @@ gradlew build
 
 The output jar is written to `build/libs/`.
 
+### The `libs/` folder
+
+A fresh clone will **not** build until you drop twelve third-party jars into a `libs/` folder. They are gitignored — this mod does not redistribute them — and the build compiles directly against them:
+
+| Files in `libs/` | Needed for |
+| --- | --- |
+| `manascore-architectury-neoforge-4.0.0.2.jar`<br>`manascore-attribute-neoforge-4.0.0.2.jar`<br>`manascore-command-neoforge-4.0.0.2.jar`<br>`manascore-config-neoforge-4.0.0.2.jar`<br>`manascore-inventory-neoforge-4.0.0.2.jar`<br>`manascore-keybind-neoforge-4.0.0.2.jar`<br>`manascore-network-neoforge-4.0.0.2.jar`<br>`manascore-race-neoforge-4.0.0.2.jar`<br>`manascore-skill-neoforge-4.0.0.2.jar`<br>`manascore-storage-neoforge-4.0.0.2.jar` | the EP tooltip and Tensura ownership transfer |
+| `mobs_of_mythology-neoforge-1.21.1-3.0.0.jar` | drake and sporeling variant names |
+| `mysticism-neoforge-2.2.1.jar` | okami variant names |
+
+Take them from the matching projects' own downloads. Everything else — Tensura, ManasCore's main jar, and Ice and Fire CE — resolves automatically from CurseMaven and needs nothing by hand.
+
+Missing any of these twelve produces a Gradle compile failure, not a silent partial build.
+
 ---
 
 ## Credits
@@ -144,4 +164,6 @@ The output jar is written to `build/libs/`.
 
 ## License
 
-MIT.
+MIT — see [`LICENSE`](LICENSE).
+
+The horn's model silhouette and body texture are adapted from Ice and Fire / Ice and Fire CE and remain under **LGPL-2.1**; that third-party material is not covered by this mod's MIT licence. See [`NOTICE.md`](NOTICE.md) for the full attribution and the list of modifications.

@@ -31,14 +31,111 @@ public final class BeastHornConfig {
             blacklistedEntities = builder
                     .comment(
                             "Entity types that cannot be captured by the Beast Horn.",
-                            "Ice and Fire's three dragon types are listed by default so they",
-                            "keep using IaF's own Dragon Horn, which stores dragon-specific",
-                            "data the Beast Horn does not reproduce. Add or remove ids here",
-                            "to change which mobs are exempt.")
+                            "",
+                            "Ice and Fire's three dragon types are listed so they keep using IaF's",
+                            "own Dragon Horn, which stores dragon-specific data this horn does not",
+                            "reproduce. Bosses follow, so raid and world bosses stay fought rather",
+                            "than pocketed. The villager family closes out the list: these mobs",
+                            "carry profession, home, trades and colony jobs that a release into a",
+                            "new dimension would strand them without.",
+                            "",
+                            "Adding or removing ids here changes which mobs are exempt.",
+                            "Note this list only seeds a new config file - an existing one is",
+                            "left exactly as you saved it.")
                     .defineListAllowEmpty("blacklistedEntities", List.of(
+                            // Ice and Fire dragons - these belong to IaF's own horn.
                             "iceandfire:fire_dragon",
                             "iceandfire:ice_dragon",
-                            "iceandfire:lightning_dragon"
+                            "iceandfire:lightning_dragon",
+
+                            // Bosses. Identified by carrying a ServerBossEvent, which is the
+                            // actual marker of a Minecraft boss rather than a name convention.
+                            // That test alone is not enough: L Ender's Cataclysm and Mowzie's
+                            // Mobs route their bars through a helper class instead, so their
+                            // mobs never reference the event themselves. Those came from Boss
+                            // Checklist's catalog, and every id below was checked against one
+                            // source or the other.
+                            "iceandfire:dread_queen",
+                            "tensura:gazel_dwargo",
+                            "tensura:hinata_sakaguchi",
+                            "tensura:akash",
+                            "tensura:charybdis",
+                            "tensura:elemental_colossus",
+                            "tensura:ifrit",
+                            "tensura:orc_disaster",
+                            "tensura:supermassive_slime",
+                            "tensura:sylphide",
+                            "tensura:undine",
+                            "tensura:war_gnome",
+
+                            // Tensura's add-ons.
+                            "tensura_neb:carrion",
+                            "tensura_neb:luminous_valentine",
+                            "tensura_neb:rimuru_ogre_fight",
+                            "foxboss:milim",
+                            "mysticism:memoires",
+                            "nightmareutils:otherworlder",
+                            "nightmareutils:shinro_nakuba_maximum",
+
+                            // L Ender's Cataclysm.
+                            "cataclysm:netherite_monstrosity",
+                            "cataclysm:ender_guardian",
+                            "cataclysm:the_harbinger",
+                            "cataclysm:ancient_remnant",
+                            "cataclysm:the_leviathan",
+                            "cataclysm:scylla",
+                            "cataclysm:maledictus",
+                            "cataclysm:ignis",
+                            "cataclysm:amethyst_crab",
+                            "cataclysm:coralssus",
+                            "cataclysm:ender_golem",
+                            "cataclysm:wadjet",
+                            "cataclysm:ignited_revenant",
+                            "cataclysm:clawdian",
+                            "cataclysm:the_prowler",
+                            "cataclysm:aptrgangr",
+                            "cataclysm:kobolediator",
+
+                            "mowziesmobs:ferrous_wroughtnaut",
+                            "mowziesmobs:umvuthi",
+                            "mowziesmobs:frostmaw",
+                            "mowziesmobs:sculptor",
+
+                            "block_factorys_bosses:sandworm",
+                            "block_factorys_bosses:yeti",
+                            "block_factorys_bosses:kraken",
+                            "block_factorys_bosses:infernal_dragon",
+                            "block_factorys_bosses:underworld_knight",
+
+                            // Born in Chaos spells its horse-less form "withouta".
+                            "born_in_chaos_v1:lord_pumpkinhead",
+                            "born_in_chaos_v1:lord_pumpkinhead_head",
+                            "born_in_chaos_v1:lord_pumpkinhead_withouta_horse",
+
+                            "aquamirae:eel",
+                            "aquamirae:captain_cornelia",
+                            "darkdoppelganger:dark_doppelganger",
+                            "illagerinvasion:invoker",
+                            "irons_spellbooks:dead_king",
+                            "irons_spellbooks:fire_boss",
+                            "mythsandlegends:black_charro",
+                            "mythsandlegends:cogwork_construct",
+                            "mythsandlegends:warborn_aegis",
+                            "netherman:azazel",
+                            "netherman:azazel_human",
+
+                            // Vanilla's own bosses, which are world-altering to pocket.
+                            "minecraft:ender_dragon",
+                            "minecraft:wither",
+                            "minecraft:elder_guardian",
+
+                            // Villagers, their guards, ribbits and MineColonies colonists.
+                            "minecraft:villager",
+                            "guardvillagers:guard",
+                            "ribbits:ribbit",
+                            "wandering_ribbit:wandering_ribbit",
+                            "guardribbits:guard_ribbit",
+                            "minecolonies:citizen"
                     ), () -> "", entry -> entry instanceof String s && s.contains(":"));
             builder.pop();
         }

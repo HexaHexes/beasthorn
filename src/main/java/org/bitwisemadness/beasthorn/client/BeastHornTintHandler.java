@@ -37,10 +37,14 @@ public final class BeastHornTintHandler {
      * number, so layer0 = body = index 0 and layer1 = orbs = index 1.</p>
      */
     public static final ItemColor TINT = (stack, tintIndex) -> {
-        if (tintIndex == 0) return 0xFFFFFF; // layer0 body - white = no tint
+        // ItemRenderer reads the alpha straight off this int and hands it to the
+        // vertex with no normalisation at all, so it must be opaque. A bare RGB
+        // value like 0xFFFFFF has alpha 0, which renders the quad invisible -
+        // that is exactly why the horn used to disappear completely when empty.
+        if (tintIndex == 0) return 0xFFFFFFFF; // layer0 body - opaque white = no tint
         ContainedMobComponent comp = stack.get(ModDataComponents.CONTAINED_MOB.get());
-        if (comp == null) return FALLBACK;
-        return resolvePrimaryColor(comp.entityType());
+        int rgb = comp == null ? FALLBACK : resolvePrimaryColor(comp.entityType());
+        return rgb | 0xFF000000;
     };
 
     /**

@@ -25,25 +25,6 @@
       "rotation": [0, -90, -25],
       "translation": [1.13, 3.2, 1.13],
       "scale": [0.88, 0.68, 0.88]
-    },
-    "gui": {
-      "rotation": [30, 225, 0],
-      "translation": [0, 1.5, 0],
-      "scale": [1.0, 1.0, 1.0]
-    },
-    "ground": {
-      "translation": [0, 3, 0],
-      "scale": [0.5, 0.5, 0.5]
-    },
-    "fixed": {
-      "rotation": [-90, 0, 0],
-      "translation": [0, 0, -5.5],
-      "scale": [0.9, 0.9, 0.9]
-    },
-    "head": {
-      "rotation": [0, 180, 0],
-      "translation": [0, 13, 7],
-      "scale": [1.0, 1.0, 1.0]
     }
   }
 }

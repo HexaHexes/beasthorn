@@ -1,27 +1,33 @@
 package org.bitwisemadness.beasthorn.util;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.language.I18n;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.ChatFormatting;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
-import org.bitwisemadness.beasthorn.item.component.ContainedMobComponent;
+import net.minecraft.world.entity.EntityType;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Builds the tooltip for a filled Beast Horn.
+ * Builds the shared tooltip block for a filled horn.
  *
  * <p>Every line is labelled so a reader never has to guess which value is which.
  * Order is fixed: name, race, owner, health, then EP. The always-present vanilla
  * values group at the top; the mod-conditional EP sits last so its absence when
- * Tensura is not installed leaves no gap mid-stack.</p>
+ * Tensura is not installed leaves no gap mid-stack. Both the Beast Horn and Ice
+ * and Fire's Dragon Horn run this same method, which is what keeps the two
+ * horns' readouts identical rather than merely similar.</p>
+ *
+ * <p>A label is always grey. A value carries only the colour this mod chose for
+ * it — except the mob's custom name, which brings its own styling and is passed
+ * through untouched.</p>
  */
 public final class TooltipHelper {
 
@@ -37,24 +43,32 @@ public final class TooltipHelper {
     private TooltipHelper() {
     }
 
-    public static void addLines(java.util.List<Component> tooltip, ContainedMobComponent comp,
-                                net.minecraft.core.HolderLookup.Provider registries) {
-        if (comp == null) return;
-
-        CompoundTag data = comp.entityData();
-
-        // Name - only if the mob carries a custom name.
-        String customName = readCustomName(data, registries);
-        if (customName != null && !customName.isBlank()) {
-            tooltip.add(line("Name", customName, ChatFormatting.YELLOW));
+    public static void addLines(List<Component> tooltip, ResourceLocation typeId, CompoundTag data,
+                                HolderLookup.Provider registries) {
+        // Name - only if the mob carries a custom name. The name keeps whatever
+        // colour codes it was given, so it reads exactly as it does overhead.
+        Component customName = readCustomName(data, registries);
+        if (customName != null && !customName.getString().isBlank()) {
+            tooltip.add(named("Name", customName));
         }
 
-        // Race - the mob's entity type description.
-        tooltip.add(line("Race", describeEntityType(comp.entityType()), ChatFormatting.AQUA));
+        // Race - the mob's entity type description, preceded by its variant
+        // where one exists. Prepending reads "Emerald Fire Dragon", which is
+        // the shape IaF already gives hippogryphs through its own lang value;
+        // that one species names the mob outright, so it replaces instead. A
+        // variant that names the species on its own - a direwolf's "Mystic
+        // Wind Wolf" - retires the race for the same reason.
+        VariantHelper.Variant variant = VariantHelper.variantOf(typeId, data);
+        String race = describeEntityType(typeId);
+        if (variant != null) {
+            race = variant.replacesRace() || VariantHelper.alreadyNamesMob(variant.text(), race)
+                    ? variant.text()
+                    : variant.text() + " " + race;
+        }
+        tooltip.add(line("Race", race, ChatFormatting.AQUA));
 
         // Owner - resolve the UUID to a player name where possible.
-        Optional<UUID> owner = resolveOwner(data);
-        owner.ifPresent(uuid -> tooltip.add(
+        resolveOwner(data).ifPresent(uuid -> tooltip.add(
                 line("Owner", resolvePlayerName(uuid), ChatFormatting.GREEN)));
 
         // Health - read from NBT, so it reflects the mob as captured.
@@ -73,20 +87,103 @@ public final class TooltipHelper {
                 line("EP", formatEp(value), ChatFormatting.LIGHT_PURPLE)));
     }
 
-    private static MutableComponent line(String label, String value, ChatFormatting valueColor) {
-        return Component.literal(label + ": ")
-                .withStyle(ChatFormatting.GRAY)
-                .append(Component.literal(value).withStyle(valueColor));
+    /**
+     * Ice and Fire's own Dragon Horn lines, emitted here so the Dragon Horn
+     * shows them after the shared block.
+     *
+     * <p>The wording is IaF's — these are its own lang keys — and the stage
+     * thresholds are IaF's own AgeTicks bands, verified against CE 2.0-beta.15.
+     * Reproducing them rather than letting IaF's {@code appendHoverText} run is
+     * what makes the ordering above possible; it costs us coupling to those two
+     * NBT keys and the AgeTicks maths.</p>
+     */
+    public static void addDragonLines(List<Component> tooltip, CompoundTag data) {
+        if (data == null || data.isEmpty()) return;
+
+        // Gender - a plain boolean, true meaning male.
+        boolean male = data.getBoolean("Gender");
+        String genderLabel = Component.translatable("dragon.gender").getString();
+        String genderValue = Component.translatable(
+                male ? "dragon.gender.male" : "dragon.gender.female").getString();
+        tooltip.add(Component.literal(genderLabel + " " + genderValue)
+                .withStyle(ChatFormatting.GRAY));
+
+        // Stage and age in days, both derived from AgeTicks as IaF does. The
+        // spaces around the day count are ours: IaF concatenates these tokens
+        // jammed together, which renders "Stage 3( 50 Days)".
+        int days = data.getInt("AgeTicks") / 24000;
+        tooltip.add(Component.translatable("dragon.stage")
+                .append(Component.literal(" " + dragonStageFor(days) + " "))
+                .append(Component.translatable("dragon.days.front"))
+                .append(Component.literal(days + " "))
+                .append(Component.translatable("dragon.days.back"))
+                .withStyle(ChatFormatting.GRAY));
     }
 
-    private static String readCustomName(CompoundTag data, net.minecraft.core.HolderLookup.Provider registries) {
+    /**
+     * The two lines an empty Dragon Horn shows, mirroring the Beast Horn's own
+     * empty tooltip except for the wording.
+     *
+     * <p>These replace IaF's method entirely rather than sitting alongside it,
+     * because IaF emits nothing at all for an empty horn — which left the
+     * Dragon Horn as the only item in the pack with a blank tooltip.</p>
+     */
+    public static void addEmptyDragonLines(List<Component> tooltip) {
+        tooltip.add(Component.literal("Empty").withStyle(ChatFormatting.DARK_GRAY));
+        tooltip.add(Component.literal("Right-click a dragon to capture it.")
+                .withStyle(ChatFormatting.DARK_GRAY));
+    }
+
+    /** IaF's AgeTicks bands: 25, 50, 75 and 100 days old. */
+    private static int dragonStageFor(int days) {
+        if (days >= 100) return 5;
+        if (days >= 75) return 4;
+        if (days >= 50) return 3;
+        if (days >= 25) return 2;
+        return 1;
+    }
+
+    /** A grey label, ready for a value to be appended. */
+    private static MutableComponent label(String label) {
+        return Component.literal(label + ": ").withStyle(ChatFormatting.GRAY);
+    }
+
+    /** A labelled line whose value is coloured by us. */
+    private static MutableComponent line(String label, String value, ChatFormatting valueColor) {
+        return label(label).append(Component.literal(value).withStyle(valueColor));
+    }
+
+    /**
+     * A labelled line whose value brings its own styling — the mob's custom
+     * name.
+     *
+     * <p>The value is appended untouched, so whatever colour and text codes the
+     * name carries survive into the tooltip. A name with no colour of its own
+     * simply inherits grey from the label, which is the normal Minecraft
+     * behaviour and reads correctly.</p>
+     */
+    private static MutableComponent named(String label, Component value) {
+        return label(label).append(value);
+    }
+
+    /**
+     * The mob's custom name as a component, so its styling is preserved.
+     *
+     * <p>Deliberately does <b>not</b> call {@code Component#getString}, which
+     * would strip every style the name carried and leave a flat string for us
+     * to re-colour wrongly.</p>
+     */
+    private static Component readCustomName(CompoundTag data, HolderLookup.Provider registries) {
         if (data == null || !data.contains("CustomName")) return null;
+        String raw = data.getString("CustomName");
+        if (raw == null || raw.isEmpty()) return null;
         try {
-            Component name = Component.Serializer.fromJson(data.getString("CustomName"), registries);
-            return name == null ? null : name.getString();
-        } catch (Exception e) {
-            return data.getString("CustomName");
+            Component name = Component.Serializer.fromJson(raw, registries);
+            if (name != null) return name;
+        } catch (Exception ignored) {
+            // Not valid component JSON - show the raw text rather than nothing.
         }
+        return Component.literal(raw);
     }
 
     private static String describeEntityType(ResourceLocation id) {
