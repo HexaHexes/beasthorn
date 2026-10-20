@@ -1,4 +1,4 @@
-﻿# Agent rules and conventions â€” Beast Horn
+# Agent rules and conventions â€” Beast Horn
 
 **Repo:** `HexaHexes/beasthorn` Â· **Mod ID:** `beasthorn` Â· **Branch:** `main`
 **Platform:** Minecraft 1.21.1 / NeoForge 21.1.259 / JDK 21 Â· **Gradle:** 9.2.1 (wrapper committed)
