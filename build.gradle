@@ -22,6 +22,16 @@ sourceSets.main.resources {
     exclude("src/generated/**/.cache") // datagen cache files
 }
 
+// Game tests live in their own source set: they compile against main and the same
+// optional mod jars, run under the gameTestServer run below, and are deliberately
+// NOT part of sourceSets.main - so none of it is packaged into the released jar.
+sourceSets {
+    gametest {
+        compileClasspath += sourceSets.main.output + configurations.compileClasspath
+        runtimeClasspath += output + sourceSets.main.output + configurations.runtimeClasspath
+    }
+}
+
 repositories {
     // CurseMaven - resolves mod jars by CurseForge project + file id.
     maven {
@@ -62,6 +72,13 @@ neoForge {
             programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
         }
 
+        // Headless test runner: loads the game test server, runs every registered
+        // @GameTest, then exits with the count of failed required tests as the exit
+        // code. Never opens a window, so `gradlew runGameTestServer` is CI-safe.
+        gameTestServer {
+            type = "gameTestServer"
+        }
+
         // applies to all the run configs above
         configureEach {
             systemProperty 'forge.logging.markers', 'REGISTRIES'
@@ -72,6 +89,10 @@ neoForge {
     mods {
         "${mod_id}" {
             sourceSet(sourceSets.main)
+            // The gametest source set joins the mod only for the gameTestServer run,
+            // so FML's scan data picks up @GameTestHolder there - while none of its
+            // classes reach the released jar.
+            sourceSet(sourceSets.gametest)
         }
     }
 }
@@ -125,6 +146,12 @@ dependencies {
     compileOnly "curse.maven:iceandfire-ce-1040076:9128508"
     localRuntime "curse.maven:iceandfire-ce-1040076:9128508"
 
+    // Ice and Fire CE 2.1.4 hard-requires these two and refuses to load without them,
+    // so every dev run - gameTestServer included - carries them exactly as the pack
+    // does. Beast Horn never touches their API; they are here purely so IaF can start.
+    localRuntime files('libs/jupiter-2.3.7-1.21.1-neoforge.jar')
+    localRuntime files('libs/uranus-2.4.1-bugfix-1.21.1-neoforge.jar')
+
     // -------------------------------------------------------------------------
     // Mobs of Mythology + Mysticism: referenced ONLY for the variant names shown
     // on the Race line. Local jars rather than CurseMaven, so the build sees the
@@ -136,6 +163,15 @@ dependencies {
             'libs/mobs_of_mythology-neoforge-1.21.1-3.0.0.jar',
             'libs/mysticism-neoforge-2.2.1.jar'
     )
+
+    // Lightman's Currency. Referenced ONLY by the game tests that prove a horn listed
+    // for sale reaches the buyer with its captured mob intact - main never touches it.
+    // compileOnly keeps it off the published POM and off the required-mod list;
+    // localRuntime puts it on the gameTestServer run, which needs the mod present to
+    // load those tests at all. It ships in this same pack, so the dev runs carrying it
+    // is simply what the mod actually runs with.
+    compileOnly files('libs/lightmanscurrency-1.21-2.3.0.6.jar')
+    localRuntime files('libs/lightmanscurrency-1.21-2.3.0.6.jar')
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
