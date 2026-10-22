@@ -98,6 +98,17 @@ Before starting any new development in this repo:
   are mandatory and must never be deleted.
 - Deploy to the Tensura RPG instance **only** when the user asks.
 
+## Naming
+
+- **Java base package:** `org.bitwisemadness.<project-name>` - repo name lowercased,
+  separators stripped (e.g. `ds-tensura-fix` -> `org.bitwisemadness.dstensurafix`).
+  The Maven `group` in `build.gradle` matches (`org.bitwisemadness`).
+- Keep repo name, folder name, `mod_id`, and the Java package aligned; the rename
+  checklist in the template's `README.md` walks the whole set.
+- **The template (`neoforge-mod-template`) is canonical for org-wide rules.** When a
+  rule is added or changed in any repo's `agents/AGENTS.md`, mirror the change into
+  the template so new repos inherit it.
+
 ## CI & release model
 
 - `ci.yml` currently enforces the **version-bump guard only**: a beta or stable bump must
