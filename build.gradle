@@ -39,6 +39,7 @@ repositories {
         url = uri("https://cursemaven.com")
         content { includeGroup("curse.maven") }
     }
+    mavenCentral()
 }
 
 base {
@@ -104,7 +105,15 @@ neoForge {
 configurations {
     localRuntime
     runtimeClasspath.extendsFrom localRuntime
+    // Resolved manascore core artifact; its nested module jars are extracted
+    // into build/ for the compile classpath (see extractManascoreModules).
+    manascoreModules
 }
+
+// Compiled-against view of the extracted manascore module jars; the file
+// collection carries the task dependency, so javac always sees fresh output.
+def manascoreModuleJars = files(fileTree(dir: layout.buildDirectory.dir('manascore-modules').get().asFile, include: '**/*.jar'))
+manascoreModuleJars.builtBy 'extractManascoreModules'
 
 dependencies {
     // -------------------------------------------------------------------------
@@ -115,20 +124,12 @@ dependencies {
     // -------------------------------------------------------------------------
     compileOnly "curse.maven:tensura-reincarnated-643695:8098859"
     compileOnly "curse.maven:manascore-619025:8022425"
-    // ManasCore's main jar embeds sub-modules via JiJ; NeoForge extracts them at
-    // runtime. Add them as compileOnly so javac can see their classes (StorageHolder).
-    compileOnly files(
-            'libs/manascore-architectury-neoforge-4.0.0.2.jar',
-            'libs/manascore-attribute-neoforge-4.0.0.2.jar',
-            'libs/manascore-command-neoforge-4.0.0.2.jar',
-            'libs/manascore-config-neoforge-4.0.0.2.jar',
-            'libs/manascore-inventory-neoforge-4.0.0.2.jar',
-            'libs/manascore-keybind-neoforge-4.0.0.2.jar',
-            'libs/manascore-network-neoforge-4.0.0.2.jar',
-            'libs/manascore-race-neoforge-4.0.0.2.jar',
-            'libs/manascore-skill-neoforge-4.0.0.2.jar',
-            'libs/manascore-storage-neoforge-4.0.0.2.jar'
-    )
+    // ManasCore's main jar nests its sub-modules under META-INF/jars; the build
+    // extracts them so javac sees the module APIs (StorageHolder). Derived from
+    // the resolved Maven artifact - nothing is committed.
+    compileOnly manascoreModuleJars
+
+    manascoreModules 'curse.maven:manascore-619025:8022425'
 
     // Run-time classpath for dev runs ONLY (runClient / runServer). Not published.
     localRuntime "curse.maven:tensura-reincarnated-643695:8098859"
@@ -149,8 +150,8 @@ dependencies {
     // Ice and Fire CE 2.1.4 hard-requires these two and refuses to load without them,
     // so every dev run - gameTestServer included - carries them exactly as the pack
     // does. Beast Horn never touches their API; they are here purely so IaF can start.
-    localRuntime files('libs/jupiter-2.3.7-1.21.1-neoforge.jar')
-    localRuntime files('libs/uranus-2.4.1-bugfix-1.21.1-neoforge.jar')
+    localRuntime 'curse.maven:jupiter-1072905:7738312' // jupiter-2.3.7
+    localRuntime 'curse.maven:uranus-1010827:8587525' // uranus-2.4.1-bugfix
 
     // -------------------------------------------------------------------------
     // Mobs of Mythology + Mysticism: referenced ONLY for the variant names shown
@@ -159,10 +160,8 @@ dependencies {
     // cannot appear in stored NBT unless the mods are installed, so there is
     // nothing for runClient to exercise.
     // -------------------------------------------------------------------------
-    compileOnly files(
-            'libs/mobs_of_mythology-neoforge-1.21.1-3.0.0.jar',
-            'libs/mysticism-neoforge-2.2.1.jar'
-    )
+    compileOnly 'curse.maven:mobs-of-mythology-699989:8269965' // mobs_of_mythology-3.0.0
+    compileOnly 'curse.maven:mysticism-1148149:8980686' // mysticism-2.2.1
 
     // Lightman's Currency. Referenced ONLY by the game tests that prove a horn listed
     // for sale reaches the buyer with its captured mob intact - main never touches it.
@@ -170,8 +169,17 @@ dependencies {
     // localRuntime puts it on the gameTestServer run, which needs the mod present to
     // load those tests at all. It ships in this same pack, so the dev runs carrying it
     // is simply what the mod actually runs with.
-    compileOnly files('libs/lightmanscurrency-1.21-2.3.0.6.jar')
-    localRuntime files('libs/lightmanscurrency-1.21-2.3.0.6.jar')
+    compileOnly 'curse.maven:lightmans-currency-472521:9048585' // lightmanscurrency-2.3.0.6
+    localRuntime 'curse.maven:lightmans-currency-472521:9048585'
+}
+
+// Extract manascore's nested module jars - byte-identical to the retired
+// libs/ copies - into build/ so javac sees the module APIs (StorageHolder and
+// friends). Derived entirely from the resolved Maven artifact.
+tasks.register('extractManascoreModules', Sync) {
+    from { zipTree(configurations.manascoreModules.singleFile) }
+    include 'META-INF/jars/*.jar'
+    into layout.buildDirectory.dir('manascore-modules')
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
@@ -213,6 +221,18 @@ publishing {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+}
+
+// --- JUnit wiring (junit CI check) -------------------------------------------
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
 }
 
 // IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.
