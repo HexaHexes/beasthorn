@@ -1,4 +1,5 @@
 {
+  "itemGroup.pseudocore": "Pseudocore",
   "item.pseudocore.iron_pseudocore": "Iron Pseudocore",
   "pseudocore.message.already_full": "This horn already holds a creature.",
   "pseudocore.message.owned": "This creature is owned by another player.",
