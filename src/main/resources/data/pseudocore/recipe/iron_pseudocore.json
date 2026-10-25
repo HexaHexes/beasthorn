@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "B": {
+      "item": "minecraft:bone"
+    },
+    "I": {
+      "item": "minecraft:stick"
+    }
+  },
+  "pattern": [
+    "  B",
+    " BB",
+    "IB "
+  ],
+  "result": {
+    "id": "pseudocore:iron_pseudocore",
+    "count": 1
+  },
+  "show_notification": true
+}

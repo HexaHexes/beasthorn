@@ -1,7 +1,0 @@
-{
-  "item.beasthorn.beast_horn": "Beast Horn",
-  "beasthorn.message.already_full": "This horn already holds a creature.",
-  "beasthorn.message.owned": "This creature is owned by another player.",
-  "beasthorn.message.busy": "This creature cannot be captured right now.",
-  "beasthorn.message.too_powerful": "The %s is too powerful to be captured by this horn."
-}

@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "org.bitwisemadness.pseudocore.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "org.bitwisemadness.pseudocore.mixin.IafMixinPlugin",
+  "mixins": [
+    "DragonHornItemMixin",
+    "ItemStackRarityMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

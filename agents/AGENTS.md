@@ -1,10 +1,10 @@
-# Agent rules and conventions — Beast Horn
+# Agent rules and conventions — Pseudocore
 
-**Repo:** `HexaHexes/beasthorn` · **Mod ID:** `beasthorn` · **Branch:** `main`
+**Repo:** `HexaHexes/pseudocore` · **Mod ID:** `pseudocore` · **Branch:** `main`
 **Platform:** Minecraft 1.21.1 / NeoForge 21.1.259 / JDK 21 · **Gradle:** 9.2.1 (wrapper committed)
-**Jar:** `build/libs/beasthorn-<version>.jar`
+**Jar:** `build/libs/pseudocore-<version>.jar`
 
-Adds a single item — the **Beast Horn** — that captures any mob with all of its NBT,
+Adds a single item — the **Pseudocore** — that captures any mob with all of its NBT,
 holds it, and lets you carry/sell/trade it. Inspired by Ice and Fire's Dragon Horn but
 generalized to any mob. **Runs standalone** — every mod integration is optional.
 
@@ -29,9 +29,9 @@ path. (Note: this repo uses `runGameTestServer`, not `runGametest`.)
   been removed per project convention — do not re-add them unless the user explicitly asks.
 - Capture is guarded regardless of gamerule: only ownerless mobs or mobs you own; not
   leashed or carrying passengers. The boss/dragon blacklist lives in
-  `config/beasthorn-server.toml`.
-- Ownership-transfer gamerules (`beastHornOwnershipTransfer`,
-  `beastHornDragonOwnershipTransfer`) both default to `false`.
+  `config/pseudocore-server.toml`.
+- Ownership-transfer gamerules (`pseudocoreOwnershipTransfer`,
+  `pseudocoreDragonOwnershipTransfer`) both default to `false`.
 - The Ice and Fire Dragon Horn ownership mixin is a separate, opt-in integration — if
   Ice and Fire CE is removed the mixin simply does not load.
 
