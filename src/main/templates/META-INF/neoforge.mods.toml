@@ -25,23 +25,23 @@ displayName="${mod_name}" #mandatory
 
 # The description text for the mod (multi line!) (#mandatory)
 description='''
-Beast Horn - capture any mob with its full NBT data and trade it between players.
+Pseudocore - capture any mob with its full NBT data and trade it between players.
 '''
 
-# The Beast Horn mixin config. Always present.
+# The Pseudocore mixin config. Always present.
 [[mixins]]
-config="beasthorn.mixins.json"
+config="pseudocore.mixins.json"
 
 # The Ice and Fire CE compatibility mixin. Only loaded when Ice and Fire CE is
 # present, so the addon still starts (without the Dragon Horn behavior) if it is
 # ever removed. Belt-and-braces: the mixin config also carries an
 # IMixinConfigPlugin that re-checks ModList, in case a loader ignores this.
 [[mixins]]
-config="beasthorn.iaf.mixins.json"
+config="pseudocore.iaf.mixins.json"
 requiredMods=["iceandfire"]
 
 # A dependency - use the . to indicate dependency for a specific modid. Dependencies are optional.
-[[dependencies.beasthorn]] #optional
+[[dependencies.pseudocore]] #optional
     # the modid of the dependency
     modId="neoforge" #mandatory
     # The type of the dependency. Can be one of "required", "optional", "incompatible" or "discouraged" (case insensitive).
@@ -53,7 +53,7 @@ requiredMods=["iceandfire"]
     # Side this dependency is applied on - BOTH, CLIENT, or SERVER
     side="BOTH"
 
-[[dependencies.beasthorn]]
+[[dependencies.pseudocore]]
     modId="minecraft"
     type="required"
     versionRange="${minecraft_version_range}"
@@ -61,22 +61,22 @@ requiredMods=["iceandfire"]
     side="BOTH"
 
 # Tensura: optional. Enables EP display and ownership transfer on release.
-[[dependencies.beasthorn]]
+[[dependencies.pseudocore]]
     modId="tensura"
     type="optional"
     ordering="AFTER"
     side="BOTH"
 
 # ManasCore: optional (required by Tensura). Provides the storage API we read EP/owner through.
-[[dependencies.beasthorn]]
+[[dependencies.pseudocore]]
     modId="manascore"
     type="optional"
     ordering="AFTER"
     side="BOTH"
 
 # Ice and Fire CE: optional. Provides the Dragon Horn whose release-path ownership
-# this addon makes transferable via the beastHornDragonOwnershipTransfer gamerule.
-[[dependencies.beasthorn]]
+# this addon makes transferable via the pseudocoreDragonOwnershipTransfer gamerule.
+[[dependencies.pseudocore]]
     modId="iceandfire"
     type="optional"
     ordering="AFTER"

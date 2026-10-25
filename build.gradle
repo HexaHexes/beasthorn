@@ -149,7 +149,7 @@ dependencies {
 
     // Ice and Fire CE 2.1.4 hard-requires these two and refuses to load without them,
     // so every dev run - gameTestServer included - carries them exactly as the pack
-    // does. Beast Horn never touches their API; they are here purely so IaF can start.
+    // does. Pseudocore never touches their API; they are here purely so IaF can start.
     localRuntime 'curse.maven:jupiter-1072905:7738312' // jupiter-2.3.7
     localRuntime 'curse.maven:uranus-1010827:8587525' // uranus-2.4.1-bugfix
 
