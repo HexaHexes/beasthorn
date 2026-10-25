@@ -1,8 +1,8 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "pseudocore:item/pseudocore_body",
-    "layer1": "pseudocore:item/pseudocore_orbs",
+    "layer0": "pseudocore:item/pseudocore_orbs",
+    "layer1": "pseudocore:item/pseudocore_body",
     "particle": "pseudocore:item/pseudocore_body"
   },
   "display": {

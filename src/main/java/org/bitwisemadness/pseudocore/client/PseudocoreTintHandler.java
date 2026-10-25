@@ -11,12 +11,13 @@ import org.bitwisemadness.pseudocore.registry.ModDataComponents;
 /**
  * Tints the three orbs in the Pseudocore texture to the captured mob's colour.
  *
- * <p>The model is a two-layer spawn-egg style split: {@code layer0} is the horn
- * body (untinted, tintIndex 0) and {@code layer1} is only the orb pixels in
- * pure white (tintIndex 1). Because {@code item/generated} assigns each layer a
- * tint index equal to its layer number, returning white for index 0 leaves the
- * body untouched and multiplying the white orbs by a colour yields that colour
- * exactly — no colour maths, no desaturation, so the orbs read vivid.</p>
+ * <p>The model is a two-layer spawn-egg style split: {@code layer0} is only the
+ * orb pixels in pure white (tintIndex 0) and {@code layer1} is the horn body
+ * (tintIndex 1). Because {@code item/generated} assigns each layer a tint index
+ * equal to its layer number, multiplying the white orbs by a colour yields that
+ * colour exactly — no colour maths, no desaturation, so the orbs read vivid.
+ * The body layer is tinted per tier; opaque white for the iron tier leaves it
+ * untouched.</p>
  *
  * <p>The colour is the mob's spawn egg <b>primary</b> colour, resolved
  * client-side from the component's stored entity type. No extra NBT is stored,
@@ -31,17 +32,19 @@ public final class PseudocoreTintHandler {
     }
 
     /**
-     * Colour for tint index 0 (the horn body) vs index 1 (the orbs).
+     * Colour for tint index 0 (the orbs) vs index 1 (the horn body).
      *
      * <p>{@code item/generated} gives each layer a tint index equal to its layer
-     * number, so layer0 = body = index 0 and layer1 = orbs = index 1.</p>
+     * number, so layer0 = orbs = index 0 and layer1 = body = index 1.</p>
      */
     public static final ItemColor TINT = (stack, tintIndex) -> {
         // ItemRenderer reads the alpha straight off this int and hands it to the
         // vertex with no normalisation at all, so it must be opaque. A bare RGB
         // value like 0xFFFFFF has alpha 0, which renders the quad invisible -
         // that is exactly why the horn used to disappear completely when empty.
-        if (tintIndex == 0) return 0xFFFFFFFF; // layer0 body - opaque white = no tint
+        // layer1 is the body, tinted per tier; the iron tier is opaque white,
+        // which leaves it untouched.
+        if (tintIndex == 1) return 0xFFFFFFFF;
         ContainedMobComponent comp = stack.get(ModDataComponents.CONTAINED_MOB.get());
         int rgb = comp == null ? FALLBACK : resolvePrimaryColor(comp.entityType());
         return rgb | 0xFF000000;
