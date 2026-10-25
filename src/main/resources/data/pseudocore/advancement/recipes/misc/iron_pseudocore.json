@@ -6,29 +6,23 @@
         "items": [
           {
             "items": [
-              "minecraft:bone"
+              "minecraft:iron_ingot"
             ]
           }
         ]
       },
       "trigger": "minecraft:inventory_changed"
-    },
-    "has_the_recipe": {
-      "conditions": {
-        "recipe": "pseudocore:iron_pseudocore"
-      },
-      "trigger": "minecraft:recipe_unlocked"
     }
   },
   "requirements": [
     [
-      "has_item",
-      "has_the_recipe"
+      "has_item"
     ]
   ],
   "rewards": {
     "recipes": [
-      "pseudocore:iron_pseudocore"
+      "pseudocore:iron_pseudocore",
+      "pseudocore:iron_pseudocore_gem"
     ]
   },
   "sends_telemetry_event": false
