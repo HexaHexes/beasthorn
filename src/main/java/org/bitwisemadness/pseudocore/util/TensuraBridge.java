@@ -5,6 +5,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.fml.ModList;
 import org.bitwisemadness.pseudocore.Pseudocore;
+import org.bitwisemadness.pseudocore.config.PseudocoreConfig;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -25,8 +26,19 @@ public final class TensuraBridge {
     private TensuraBridge() {
     }
 
+    /**
+     * Whether Tensura's integration is active: installed <b>and</b> switched on
+     * in {@code pseudocore-common.toml}.
+     *
+     * <p>Every method below starts here, so a pack that turns the integration
+     * off gets no Tensura behaviour at all - no EP line, no ownership read or
+     * transfer, no Tensura variant names - while Tensura itself stays installed
+     * and untouched. The switch is checked at this one gate rather than at each
+     * call site, because this is the single place that keeps every Tensura type
+     * behind {@link TensuraAccess}.</p>
+     */
     public static boolean isLoaded() {
-        return ModList.get().isLoaded("tensura");
+        return ModList.get().isLoaded("tensura") && PseudocoreConfig.tensuraIntegrationEnabled();
     }
 
     /**

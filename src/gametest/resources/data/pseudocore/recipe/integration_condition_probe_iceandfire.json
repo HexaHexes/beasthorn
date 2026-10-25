@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "minecraft:stick"
+    }
+  ],
+  "result": {
+    "id": "minecraft:stick",
+    "count": 1
+  },
+  "neoforge:conditions": [
+    {
+      "type": "pseudocore:iceandfire_active"
+    }
+  ]
+}

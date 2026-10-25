@@ -4,6 +4,7 @@ import com.iafenvoy.iceandfire.item.DragonHornItem;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
+import org.bitwisemadness.pseudocore.config.PseudocoreConfig;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -39,7 +40,12 @@ public abstract class ItemStackRarityMixin {
             )
     )
     private Object pseudocore$rareForDragonHorn(ItemStack stack, DataComponentType<?> type, Object fallback) {
-        if (stack.getItem() instanceof DragonHornItem) {
+        // Checked at call time, not at mixin-apply time: the mixin has to be
+        // applied for the item to exist at all (IaF is present), but the
+        // integration switch can still be off, and then IaF's own rarity must
+        // stand.
+        if (stack.getItem() instanceof DragonHornItem
+                && PseudocoreConfig.iceAndFireIntegrationEnabled()) {
             return Rarity.RARE;
         }
         return stack.getOrDefault(type, fallback);

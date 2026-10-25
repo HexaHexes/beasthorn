@@ -6,6 +6,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import org.bitwisemadness.pseudocore.config.PseudocoreConfig;
+import org.bitwisemadness.pseudocore.registry.ModConditions;
 import org.bitwisemadness.pseudocore.registry.ModDataComponents;
 import org.bitwisemadness.pseudocore.registry.ModGameRules;
 import org.bitwisemadness.pseudocore.registry.ModItems;
@@ -20,8 +21,10 @@ public final class Pseudocore {
     public Pseudocore(IEventBus modBus, ModContainer container) {
         ModItems.ITEMS.register(modBus);
         ModDataComponents.DATA_COMPONENTS.register(modBus);
+        ModConditions.CONDITION_CODECS.register(modBus);
 
         container.registerConfig(ModConfig.Type.SERVER, PseudocoreConfig.COMMON_SPEC);
+        container.registerConfig(ModConfig.Type.COMMON, PseudocoreConfig.INTEGRATIONS_SPEC);
 
         modBus.addListener(this::onCommonSetup);
     }

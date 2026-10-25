@@ -15,6 +15,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import org.bitwisemadness.pseudocore.config.PseudocoreConfig;
 import org.bitwisemadness.pseudocore.registry.ModGameRules;
 import org.bitwisemadness.pseudocore.util.IafHornAccess;
 import org.bitwisemadness.pseudocore.util.TooltipHelper;
@@ -45,6 +46,14 @@ import java.util.List;
  * Stage/Days lines. Replacing rather than appending is what lets us control the
  * ordering; the cost is coupling to IaF's lang keys and AgeTicks bands, both
  * handled in {@link TooltipHelper}.</p>
+ *
+ * <p>Both hooks consult {@code iceAndFireIntegration} (in
+ * {@code pseudocore-common.toml}) when they run, so switching the integration
+ * off leaves the Dragon Horn exactly as IaF ships it. The check has to happen
+ * here rather than in the mixin config: mixins are applied during class loading,
+ * long before any config exists, so the plugin can only answer "is IaF
+ * installed". The switch is a call-time decision instead - returning without
+ * cancelling hands the tooltip back to IaF's own method untouched.</p>
  */
 @Mixin(value = com.iafenvoy.iceandfire.item.DragonHornItem.class, remap = true)
 public abstract class DragonHornItemMixin {
@@ -60,6 +69,10 @@ public abstract class DragonHornItemMixin {
             UseOnContext context,
             CallbackInfoReturnable<InteractionResult> cir,
             @Local Entity entity) {
+
+        if (!PseudocoreConfig.iceAndFireIntegrationEnabled()) {
+            return;
+        }
 
         // Deliberately checked as vanilla TamableAnimal rather than IaF's
         // DragonBaseEntity. The three methods used below (isOwnedBy, setTame,
@@ -119,6 +132,11 @@ public abstract class DragonHornItemMixin {
             List<Component> tooltip,
             TooltipFlag flag,
             CallbackInfo cir) {
+
+        if (!PseudocoreConfig.iceAndFireIntegrationEnabled()) {
+            // Stand aside without cancelling: IaF's own tooltip runs.
+            return;
+        }
 
         DragonHornComponent horn = IafHornAccess.read(stack);
         if (horn == null) {
