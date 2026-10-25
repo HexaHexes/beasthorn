@@ -103,6 +103,7 @@ its own file, `config/pseudocore-server.toml`.
 ## Getting it in-game
 
 Craft a pseudocore (see its recipe in-game) and use it as above -- no configuration.
+Every tier also sits in its own **Pseudocore** creative tab.
 
 ## Dependencies
 
