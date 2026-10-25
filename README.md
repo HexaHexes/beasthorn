@@ -86,6 +86,20 @@ Releasing a mob never changes who owns it, unless a server opts in:
 /gamerule pseudocoreDragonOwnershipTransfer true
 ```
 
+## Turning an integration off
+
+Ice and Fire CE and Tensura can each be switched off **without uninstalling them**,
+in `config/pseudocore-common.toml`:
+
+| Setting | Default | Effect when off |
+|---|---|---|
+| `tensuraIntegration` | on | No EP line, no Tensura ownership read or transfer, no Tensura variant names, and none of the Tensura-gated recipes |
+| `iceAndFireIntegration` | on | The Dragon Horn keeps IaF's own tooltip and rarity, its release no longer transfers ownership, and none of the IaF-gated recipes exist |
+
+The switch is honoured in code and in data packs alike, so it also works on a
+server whose modpack still has the mod installed. The entity blacklist lives in
+its own file, `config/pseudocore-server.toml`.
+
 ## Getting it in-game
 
 Craft a pseudocore (see its recipe in-game) and use it as above -- no configuration.

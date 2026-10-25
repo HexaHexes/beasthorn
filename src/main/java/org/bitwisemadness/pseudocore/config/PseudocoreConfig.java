@@ -6,21 +6,94 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.util.List;
 
 /**
- * Server config. The main tunable is the entity blacklist, which is what keeps
- * Ice and Fire's dragons on their own Dragon Horn instead of the Pseudocore.
+ * Mod config, split by where the value has to be readable.
+ *
+ * <p>{@link #COMMON_SPEC} is the server config ({@code pseudocore-server.toml}):
+ * per-world gameplay tuning, the entity blacklist.</p>
+ *
+ * <p>{@link #INTEGRATIONS_SPEC} is a common config
+ * ({@code pseudocore-common.toml}) holding the integration switches. It is
+ * deliberately <b>not</b> in the server config: datapack conditions are
+ * evaluated while the world's data packs load, which happens before the server -
+ * and therefore the server config - exists. A common config is read during mod
+ * construction, so conditions, mixins and tooltips can all consult it.</p>
  */
 public final class PseudocoreConfig {
 
     public static final Common COMMON;
     public static final ModConfigSpec COMMON_SPEC;
 
+    public static final Integrations INTEGRATIONS;
+    public static final ModConfigSpec INTEGRATIONS_SPEC;
+
     static {
         final Pair<Common, ModConfigSpec> specPair = new ModConfigSpec.Builder().configure(Common::new);
         COMMON = specPair.getLeft();
         COMMON_SPEC = specPair.getRight();
+
+        final Pair<Integrations, ModConfigSpec> integrationPair =
+                new ModConfigSpec.Builder().configure(Integrations::new);
+        INTEGRATIONS = integrationPair.getLeft();
+        INTEGRATIONS_SPEC = integrationPair.getRight();
     }
 
     private PseudocoreConfig() {
+    }
+
+    /**
+     * Whether another mod's integration is switched on, failing <b>open</b> when
+     * the config has not been read yet.
+     *
+     * <p>Failing open matches the behaviour before the switch existed: an
+     * integration is only ever disabled by an explicit {@code false} in the
+     * file, never by a timing accident.</p>
+     */
+    public static boolean integrationEnabled(ModConfigSpec.BooleanValue value) {
+        try {
+            return value.get();
+        } catch (IllegalStateException notLoadedYet) {
+            return true;
+        }
+    }
+
+    /** True when Tensura's integration is switched on. */
+    public static boolean tensuraIntegrationEnabled() {
+        return integrationEnabled(INTEGRATIONS.tensuraEnabled);
+    }
+
+    /** True when Ice and Fire CE's integration is switched on. */
+    public static boolean iceAndFireIntegrationEnabled() {
+        return integrationEnabled(INTEGRATIONS.iceAndFireEnabled);
+    }
+
+    /** The integration switches, in {@code pseudocore-common.toml}. */
+    public static final class Integrations {
+        public final ModConfigSpec.BooleanValue tensuraEnabled;
+        public final ModConfigSpec.BooleanValue iceAndFireEnabled;
+
+        public Integrations(ModConfigSpec.Builder builder) {
+            builder.push("pseudocore");
+            tensuraEnabled = builder
+                    .comment(
+                            "Whether Tensura's integration is active while Tensura is installed.",
+                            "",
+                            "Off makes the Pseudocore behave as though Tensura were absent:",
+                            "no EP line, no Tensura ownership read or transfer, no Tensura",
+                            "variant names, and none of the Tensura-conditional recipes.",
+                            "This is a hard switch, not a hint - it gates code and data packs",
+                            "alike, so it works even on a server whose pack has Tensura.")
+                    .define("tensuraIntegration", true);
+            iceAndFireEnabled = builder
+                    .comment(
+                            "Whether Ice and Fire CE's integration is active while IaF is installed.",
+                            "",
+                            "Off makes the Pseudocore behave as though IaF were absent: the",
+                            "Dragon Horn keeps IaF's own tooltip and rarity, its release path",
+                            "no longer transfers ownership, and none of the IaF-conditional",
+                            "recipes exist.")
+                    .define("iceAndFireIntegration", true);
+            builder.pop();
+        }
     }
 
     public static final class Common {
