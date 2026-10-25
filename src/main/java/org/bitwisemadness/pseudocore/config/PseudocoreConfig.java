@@ -34,10 +34,13 @@ public final class PseudocoreConfig {
                             "",
                             "Ice and Fire's three dragon types are listed so they keep using IaF's",
                             "own Dragon Horn, which stores dragon-specific data this horn does not",
-                            "reproduce. Bosses follow, so raid and world bosses stay fought rather",
-                            "than pocketed. The villager family closes out the list: these mobs",
-                            "carry profession, home, trades and colony jobs that a release into a",
-                            "new dimension would strand them without.",
+                            "reproduce. Named encounter mobs follow: Tensura's orc, goblin,",
+                            "lizardman and three daemon ranks and Mysticism's okami are capturable",
+                            "in their own right but story-relevant, so they are exempt too. Bosses",
+                            "follow, so raid and world bosses stay fought rather than pocketed. The",
+                            "villager family closes out the list: these mobs carry profession, home,",
+                            "trades and colony jobs that a release into a new dimension would strand",
+                            "them without.",
                             "",
                             "Adding or removing ids here changes which mobs are exempt.",
                             "Note this list only seeds a new config file - an existing one is",
@@ -47,6 +50,19 @@ public final class PseudocoreConfig {
                             "iceandfire:fire_dragon",
                             "iceandfire:ice_dragon",
                             "iceandfire:lightning_dragon",
+
+                            // Named encounter mobs. Not bosses (Tensura's Orc Disaster is in
+                            // the boss group below), but story-relevant enough that pocketing
+                            // them would skip the encounter: Tensura's orc ranks, goblin,
+                            // lizardman and three daemon ranks, and Mysticism's spirit wolf.
+                            "tensura:orc",
+                            "tensura:orc_lord",
+                            "tensura:goblin",
+                            "tensura:lizardman",
+                            "tensura:arch_daemon",
+                            "tensura:greater_daemon",
+                            "tensura:lesser_daemon",
+                            "mysticism:okami",
 
                             // Bosses. Identified by carrying a ServerBossEvent, which is the
                             // actual marker of a Minecraft boss rather than a name convention.

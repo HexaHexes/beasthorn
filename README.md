@@ -65,8 +65,10 @@ stable color derived from their id.
 ## Ice and Fire dragons stay on Ice and Fire's horn
 
 Pseudocore **does not** capture Ice and Fire's dragons -- they keep using IaF's own
-Dragon Horn. The item is blacklisted by default against the three IaF dragons **and
-71 bosses**, so it can't be used to pocket an encounter. A capture attempt on a
+Dragon Horn. The item is blacklisted by default against the three IaF dragons, 62
+bosses, eight Tensura and Mysticism encounter mobs (Tensura's orc ranks, goblin,
+lizardman and three daemon ranks, plus Mysticism's okami) and villagers/colonists --
+79 ids in all -- so it can't be used to pocket an encounter. A capture attempt on a
 blacklisted mob simply refuses, naming the mob. The full list is editable in
 `config/pseudocore-server.toml`.
 
