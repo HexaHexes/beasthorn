@@ -18,6 +18,8 @@ This mod is directly inspired by two mods:
   points) shown for captured mobs, named variants, magic crystals as the craft
   ingredients of the tier recipes, and the metal tiers that the pseudocore line is
   built on.
+- **The Pseudocores of the Tensura anime and manga** - the item's design follows
+  theirs, and they are where the mod's name comes from.
 
 Both are optional at runtime: Pseudocore runs standalone and only layers their
 content in when the corresponding mod is present.
@@ -57,10 +59,11 @@ An empty pseudocore shows a hint instead.
 
 ## Appearance
 
-The item keeps a horn silhouette adapted from Ice and Fire, so it fits the existing
-art. When a mob is stored, the item's **three small orbs** tint to that mob's
-spawn-egg color -- vivid, and only the orbs. Mob types with no spawn egg get a
-stable color derived from their id.
+The item's look follows the Pseudocores of Tensura's anime and manga: a vessel
+with a cluster of coloured orbs, while the model silhouette stays adapted from
+Ice and Fire's horn. When a mob is stored, the item's **three small orbs** tint to
+that mob's spawn-egg color -- vivid, and only the orbs. Mob types with no spawn
+egg get a stable color derived from their id.
 
 ## Ice and Fire dragons stay on Ice and Fire's horn
 
@@ -126,6 +129,8 @@ one, the item still works and just omits that mod's names or extras.
   are in [`NOTICE.md`](NOTICE.md).
 - EP display, tier progression, and metal/crystal theming inspired by
   **Tensura: Reincarnated**.
+- Item design -- the vessel and its coloured orbs -- inspired by the Pseudocores of
+  the **Tensura** anime and manga, which is also where the mod's name comes from.
 
 ## License
 
