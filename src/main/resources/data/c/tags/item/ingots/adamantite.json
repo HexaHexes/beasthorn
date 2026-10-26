@@ -1,0 +1,9 @@
+﻿{
+  "replace": false,
+  "values": [
+    {
+      "id": "tensura:adamantite_ingot",
+      "required": false
+    }
+  ]
+}

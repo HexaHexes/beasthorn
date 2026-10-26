@@ -39,6 +39,19 @@ public final class IntegrationConditionGameTests {
     }
 
     @GameTest(template = "test_area")
+    public static void andAndOrConditionProbesLoad(GameTestHelper helper) {
+        var recipes = helper.getLevel().getServer().getRecipeManager();
+
+        check(recipes.byKey(ResourceLocation.fromNamespaceAndPath(Pseudocore.MOD_ID, "and_condition_probe")).isPresent(),
+                "a recipe gated on neoforge:and of two true conditions must load - if it does not, every"
+                        + " recipe that combines and/or/not conditions is silently dropped");
+        check(recipes.byKey(ResourceLocation.fromNamespaceAndPath(Pseudocore.MOD_ID, "or_condition_probe")).isPresent(),
+                "a recipe gated on neoforge:or with one true branch must load the same way");
+
+        helper.succeed();
+    }
+
+    @GameTest(template = "test_area")
     public static void tensuraConditionGatesItsDataFile(GameTestHelper helper) {
         checkRegistered("tensura_active");
 

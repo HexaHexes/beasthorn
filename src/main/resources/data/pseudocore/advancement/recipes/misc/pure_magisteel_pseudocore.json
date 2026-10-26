@@ -1,0 +1,29 @@
+﻿{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_item": {
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "#c:ingots/pure_magisteel"
+            ]
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "requirements": [
+    [
+      "has_item"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "pseudocore:pure_magisteel_pseudocore",
+      "pseudocore:pure_magisteel_pseudocore_gem"
+    ]
+  },
+  "sends_telemetry_event": false
+}

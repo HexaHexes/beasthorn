@@ -49,6 +49,8 @@ public final class BaseRecipeGameTests {
             ResourceLocation.fromNamespaceAndPath("tensura", "low_quality_magic_crystal");
     private static final ResourceLocation MEDIUM_CRYSTAL =
             ResourceLocation.fromNamespaceAndPath("tensura", "medium_quality_magic_crystal");
+    private static final ResourceLocation HIGH_CRYSTAL =
+            ResourceLocation.fromNamespaceAndPath("tensura", "high_quality_magic_crystal");
 
     private BaseRecipeGameTests() {
     }
@@ -107,7 +109,7 @@ public final class BaseRecipeGameTests {
 
     /** Every tier that is registered in this environment, in ascending order. */
     private static List<Tier> registeredTiers() {
-        List<Tier> tiers = new ArrayList<>(5);
+        List<Tier> tiers = new ArrayList<>(12);
         tiers.add(new Tier("copper", LOW_CRYSTAL, ModItems.COPPER_PSEUDOCORE.get()));
         tiers.add(new Tier("iron", LOW_CRYSTAL, ModItems.IRON_PSEUDOCORE.get()));
         if (ModItems.silverAvailable()) {
@@ -115,6 +117,15 @@ public final class BaseRecipeGameTests {
         }
         tiers.add(new Tier("gold", LOW_CRYSTAL, ModItems.GOLD_PSEUDOCORE.get()));
         tiers.add(new Tier("netherite", MEDIUM_CRYSTAL, ModItems.NETHERITE_PSEUDOCORE.get()));
+        if (ModItems.tensuraTiersAvailable()) {
+            String[] metals = { "low_magisteel", "high_magisteel", "pure_magisteel",
+                    "mithril", "orichalcum", "adamantite", "hihiirokane" };
+            ResourceLocation[] crystals = { MEDIUM_CRYSTAL, MEDIUM_CRYSTAL, MEDIUM_CRYSTAL,
+                    HIGH_CRYSTAL, HIGH_CRYSTAL, HIGH_CRYSTAL, HIGH_CRYSTAL };
+            for (int i = 0; i < metals.length; i++) {
+                tiers.add(new Tier(metals[i], crystals[i], ModItems.TENSURA_TIERS.get(i).get()));
+            }
+        }
         return tiers;
     }
 
