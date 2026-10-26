@@ -4,9 +4,12 @@ import net.minecraft.client.color.item.ItemColor;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
 import org.bitwisemadness.pseudocore.item.component.ContainedMobComponent;
 import org.bitwisemadness.pseudocore.registry.ModDataComponents;
+
+import java.util.Map;
 
 /**
  * Tints the three orbs in the Pseudocore texture to the captured mob's colour.
@@ -28,6 +31,34 @@ public final class PseudocoreTintHandler {
     /** Fallback for mobs with no spawn egg: a bone-ish neutral. */
     private static final int FALLBACK = 0xD9C7A3;
 
+    /**
+     * The body tint of each tier, keyed by item id path. These are
+     * <b>multipliers</b> on the body texture: the iron tier is opaque white,
+     * which leaves the texture as drawn, and every other tier multiplies it by
+     * its metal's colour, the way dyed armour works. Every value is opaque -
+     * ItemRenderer reads the alpha raw (see the note in {@link #TINT}), so a
+     * translucent value here would render the body invisible. Palette proposed
+     * in the tinting issue and open to taste.
+     */
+    private static final Map<String, Integer> BODY_COLORS = Map.ofEntries(
+            Map.entry("copper_pseudocore", 0xFFE88C5A),
+            Map.entry("silver_pseudocore", 0xFFDDE4EA),
+            Map.entry("gold_pseudocore", 0xFFF6D75C),
+            Map.entry("netherite_pseudocore", 0xFF6A5F63),
+            Map.entry("low_magisteel_pseudocore", 0xFF9FA8B0),
+            Map.entry("high_magisteel_pseudocore", 0xFFC4CFD8),
+            Map.entry("pure_magisteel_pseudocore", 0xFFE9F1F6),
+            Map.entry("mithril_pseudocore", 0xFFC7D9EE),
+            Map.entry("orichalcum_pseudocore", 0xFFE5A44E),
+            Map.entry("adamantite_pseudocore", 0xFF59627A),
+            Map.entry("hihiirokane_pseudocore", 0xFFE0513D));
+
+    /** Opaque body tint for a tier; anything unmapped stays white (untouched). */
+    private static int bodyColor(ItemStack stack) {
+        return BODY_COLORS.getOrDefault(
+                BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath(), 0xFFFFFFFF);
+    }
+
     private PseudocoreTintHandler() {
     }
 
@@ -42,9 +73,10 @@ public final class PseudocoreTintHandler {
         // vertex with no normalisation at all, so it must be opaque. A bare RGB
         // value like 0xFFFFFF has alpha 0, which renders the quad invisible -
         // that is exactly why the horn used to disappear completely when empty.
-        // layer1 is the body, tinted per tier; the iron tier is opaque white,
-        // which leaves it untouched.
-        if (tintIndex == 1) return 0xFFFFFFFF;
+        // layer1 is the body, tinted per metal - see bodyColor.
+        if (tintIndex == 1) {
+            return bodyColor(stack);
+        }
         ContainedMobComponent comp = stack.get(ModDataComponents.CONTAINED_MOB.get());
         int rgb = comp == null ? FALLBACK : resolvePrimaryColor(comp.entityType());
         return rgb | 0xFF000000;
