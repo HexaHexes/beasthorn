@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "I": {
+      "tag": "c:ingots/silver"
+    },
+    "C": {
+      "item": "tensura:low_quality_magic_crystal"
+    }
+  },
+  "pattern": [
+    " I ",
+    "ICI",
+    " I "
+  ],
+  "result": {
+    "id": "pseudocore:silver_pseudocore",
+    "count": 1
+  },
+  "show_notification": true,
+  "neoforge:conditions": [
+    {
+      "type": "pseudocore:tensura_active"
+    }
+  ]
+}

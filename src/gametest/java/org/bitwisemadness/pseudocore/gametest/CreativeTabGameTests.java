@@ -6,10 +6,14 @@ import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.bitwisemadness.pseudocore.Pseudocore;
 import org.bitwisemadness.pseudocore.registry.ModItems;
+
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * The tab is the only way to reach the item line without a recipe, so it is
@@ -44,11 +48,14 @@ public final class CreativeTabGameTests {
                 helper.getLevel().enabledFeatures(), false, helper.getLevel().registryAccess()));
 
         var items = tab.getDisplayItems();
+        var shown = items.stream().map(ItemStack::getItem).collect(Collectors.toSet());
+        var expected = Set.copyOf(ModItems.all());
 
-        check(items.stream().anyMatch(stack -> stack.is(ModItems.IRON_PSEUDOCORE.get())),
-                "the tab must contain the iron pseudocore, found: " + items);
-        check(items.stream().allMatch(stack -> stack.is(ModItems.IRON_PSEUDOCORE.get())),
-                "the tab must hold this mod's items and nothing else, found: " + items);
+        check(shown.equals(expected),
+                "the tab must hold exactly the registered tiers, in this environment " + expected
+                        + ", found: " + shown);
+        check(items.size() == expected.size(),
+                "each tier must appear once, found " + items.size() + " entries: " + items);
         check(tab.getIconItem().is(ModItems.IRON_PSEUDOCORE.get()),
                 "the tab icon must be the iron pseudocore, the tier every environment has, got "
                         + tab.getIconItem());

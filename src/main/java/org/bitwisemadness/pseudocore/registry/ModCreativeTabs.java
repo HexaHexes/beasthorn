@@ -30,7 +30,7 @@ public final class ModCreativeTabs {
             CREATIVE_MODE_TABS.register("pseudocore", () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.pseudocore"))
                     .icon(() -> new ItemStack(ModItems.IRON_PSEUDOCORE.get()))
-                    .displayItems((parameters, output) -> output.accept(ModItems.IRON_PSEUDOCORE.get()))
+                    .displayItems((parameters, output) -> ModItems.all().forEach(output::accept))
                     .build());
 
     private ModCreativeTabs() {
