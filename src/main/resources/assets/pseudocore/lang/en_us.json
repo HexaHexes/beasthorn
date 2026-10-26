@@ -1,6 +1,10 @@
 {
   "itemGroup.pseudocore": "Pseudocore",
+  "item.pseudocore.copper_pseudocore": "Copper Pseudocore",
   "item.pseudocore.iron_pseudocore": "Iron Pseudocore",
+  "item.pseudocore.silver_pseudocore": "Silver Pseudocore",
+  "item.pseudocore.gold_pseudocore": "Gold Pseudocore",
+  "item.pseudocore.netherite_pseudocore": "Netherite Pseudocore",
   "pseudocore.message.already_full": "This horn already holds a creature.",
   "pseudocore.message.owned": "This creature is owned by another player.",
   "pseudocore.message.busy": "This creature cannot be captured right now.",

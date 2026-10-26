@@ -1,5 +1,6 @@
 package org.bitwisemadness.pseudocore.client;
 
+import net.minecraft.world.item.Item;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -27,6 +28,10 @@ public final class PseudocoreClientEvents {
 
     @SubscribeEvent
     public static void onRegisterItemColors(RegisterColorHandlersEvent.Item event) {
-        event.register(PseudocoreTintHandler.TINT, ModItems.IRON_PSEUDOCORE.get());
+        // Every tier shares the two-layer texture, so every tier needs the same
+        // handler: layer0 tints to the captured mob, layer1 is the metal. The
+        // per-metal body colours arrive separately; without the registration the
+        // orbs of a new tier would simply never take a colour.
+        event.register(PseudocoreTintHandler.TINT, ModItems.all().toArray(Item[]::new));
     }
 }
