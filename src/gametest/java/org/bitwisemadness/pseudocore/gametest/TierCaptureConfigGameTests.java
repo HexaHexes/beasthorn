@@ -1,0 +1,141 @@
+package org.bitwisemadness.pseudocore.gametest;
+
+import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.gametest.framework.GameTestAssertException;
+import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.animal.Wolf;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.GameType;
+import net.neoforged.neoforge.gametest.GameTestHolder;
+import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import org.bitwisemadness.pseudocore.Pseudocore;
+import org.bitwisemadness.pseudocore.config.PseudocoreConfig;
+import org.bitwisemadness.pseudocore.item.PseudocoreItem;
+import org.bitwisemadness.pseudocore.item.component.ContainedMobComponent;
+import org.bitwisemadness.pseudocore.registry.ModDataComponents;
+import org.bitwisemadness.pseudocore.registry.ModItems;
+
+import java.util.List;
+
+/**
+ * The per-tier capture limits: every tier has a config section, the sections
+ * default permissive (a tier limits nothing until a pack opts in), and the
+ * limits are actually enforced on the capture path.
+ *
+ * <p>The enforcement test flips {@code allowTamedMobs} on the live config value
+ * and restores it in a finally block - the config file the gametest server uses
+ * is the dev run's own, so anything the test sets must be put back. The
+ * refused-then-allowed pair around that flip is what proves the gate reads the
+ * config per capture rather than caching it anywhere.</p>
+ *
+ * <p>A tamed wolf is the probe for allowTamedMobs because the anti-theft rule
+ * must not interfere: the wolf is tamed by the very player attempting the
+ * capture, so the only thing standing between it and the horn is the tier
+ * switch.</p>
+ */
+@GameTestHolder(Pseudocore.MOD_ID)
+@PrefixGameTestTemplate(false)
+public final class TierCaptureConfigGameTests {
+
+    private static final List<String> TIER_KEYS = List.of(
+            "copper", "iron", "silver", "gold", "netherite",
+            "lowMagisteel", "highMagisteel", "pureMagisteel", "mithril", "orichalcum", "adamantite",
+            "hihiirokane");
+
+    private TierCaptureConfigGameTests() {
+    }
+
+    @GameTest(template = "test_area")
+    public static void everyItemResolvesItsTierKey(GameTestHelper helper) {
+        check(PseudocoreConfig.tierKey(ModItems.COPPER_PSEUDOCORE.get()).equals("copper"),
+                "the copper pseudocore must resolve to the copper tier key");
+        check(PseudocoreConfig.tierKey(ModItems.IRON_PSEUDOCORE.get()).equals("iron"),
+                "the iron pseudocore must resolve to the iron tier key");
+        if (ModItems.silverAvailable()) {
+            check(PseudocoreConfig.tierKey(ModItems.SILVER_PSEUDOCORE.get()).equals("silver"),
+                    "the silver pseudocore must resolve to the silver tier key");
+        }
+        if (ModItems.tensuraTiersAvailable()) {
+            check(PseudocoreConfig.tierKey(ModItems.TENSURA_TIERS.get(0).get()).equals("lowMagisteel"),
+                    "snake_case tier ids must map to camelCase config keys");
+            check(PseudocoreConfig.tierKey(ModItems.TENSURA_TIERS.get(6).get()).equals("hihiirokane"),
+                    "a single-word metal id must map to itself");
+        }
+        check(PseudocoreConfig.tierKey(net.minecraft.world.item.Items.STICK).isEmpty(),
+                "an item that is not a pseudocore tier has no tier key");
+
+        helper.succeed();
+    }
+
+    @GameTest(template = "test_area")
+    public static void everyTierSectionExistsAndDefaultsPermissive(GameTestHelper helper) {
+        for (String key : TIER_KEYS) {
+            PseudocoreConfig.TierSection section = PseudocoreConfig.COMMON.tier(key).orElse(null);
+            check(section != null, "no config section for tier " + key);
+            check(section.maxEP.get() == 0.0D,
+                    key + ".maxEP must default to 0 (no cap), got " + section.maxEP.get());
+            check(section.allowTamedMobs.get(),
+                    key + " must default to allowing tamed mobs");
+            check(section.allowTensuraNamed.get(),
+                    key + " must default to allowing named mobs");
+
+            PseudocoreConfig.TierLimits limits = PseudocoreConfig.COMMON.limits(key);
+            check(limits.maxEP() == 0.0D && limits.allowTamedMobs() && limits.allowTensuraNamed(),
+                    "the resolved limits for " + key + " must match the section's permissive defaults");
+        }
+
+        helper.succeed();
+    }
+
+    @GameTest(template = "test_area")
+    public static void plainMobCaptureStoresIt(GameTestHelper helper) {
+        var player = helper.makeMockPlayer(GameType.SURVIVAL);
+        var cow = helper.spawn(EntityType.COW, 1, 1, 1);
+        ItemStack stack = new ItemStack(ModItems.IRON_PSEUDOCORE.get());
+
+        InteractionResult result = PseudocoreItem.tryCapture(player, cow, stack);
+
+        check(result == InteractionResult.SUCCESS,
+                "a plain mob must be capturable by the iron tier, got " + result);
+        ContainedMobComponent contained = stack.get(ModDataComponents.CONTAINED_MOB.get());
+        check(contained != null, "a successful capture must write the contained_mob component");
+
+        helper.succeed();
+    }
+
+    @GameTest(template = "test_area")
+    public static void tamedMobRefusalFollowsTheTierSwitch(GameTestHelper helper) {
+        var player = helper.makeMockPlayer(GameType.SURVIVAL);
+        Wolf wolf = helper.spawn(EntityType.WOLF, 1, 1, 1);
+        wolf.tame(player);
+        ItemStack stack = new ItemStack(ModItems.IRON_PSEUDOCORE.get());
+        PseudocoreConfig.TierSection iron = PseudocoreConfig.COMMON.tier("iron").orElseThrow();
+
+        // The wolf is tamed by the very player attempting the capture, so the
+        // anti-theft rule passes and the tier switch is the only gate in play.
+        iron.allowTamedMobs.set(false);
+        try {
+            InteractionResult refused = PseudocoreItem.tryCapture(player, wolf, stack);
+            check(refused == InteractionResult.PASS,
+                    "with allowTamedMobs off, capturing a tamed mob must be refused, got " + refused);
+            check(!stack.has(ModDataComponents.CONTAINED_MOB.get()),
+                    "a refused capture must not write the contained_mob component");
+        } finally {
+            iron.allowTamedMobs.set(true);
+        }
+
+        InteractionResult allowed = PseudocoreItem.tryCapture(player, wolf, stack);
+        check(allowed == InteractionResult.SUCCESS,
+                "with the switch restored the capture succeeds, got " + allowed);
+
+        helper.succeed();
+    }
+
+    private static void check(boolean condition, String message) {
+        if (!condition) {
+            throw new GameTestAssertException(message);
+        }
+    }
+}

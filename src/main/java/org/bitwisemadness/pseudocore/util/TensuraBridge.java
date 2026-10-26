@@ -86,6 +86,33 @@ public final class TensuraBridge {
     }
 
     /**
+     * The live mob's EP, or empty when the integration is inactive or the mob
+     * has no Tensura storage. Read by the per-tier EP cap, which only enforces
+     * when it gets a value.
+     */
+    public static Optional<Double> readEp(LivingEntity entity) {
+        if (!isLoaded() || entity == null) return Optional.empty();
+        try {
+            return TensuraAccess.readEp(entity);
+        } catch (Throwable t) {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Whether Tensura's naming system has named this mob - distinct from a
+     * vanilla custom name. Read by the per-tier named-mob gate.
+     */
+    public static boolean isNamed(LivingEntity entity) {
+        if (!isLoaded() || entity == null) return false;
+        try {
+            return TensuraAccess.isNamed(entity);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /**
      * The live entity's Tensura owner UUID, if any. Read from Tensura's own
      * storage rather than NBT, since here we have the entity itself.
      */
