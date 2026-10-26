@@ -1,15 +1,22 @@
 package org.bitwisemadness.pseudocore.config;
 
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.item.Item;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Mod config, split by where the value has to be readable.
  *
  * <p>{@link #COMMON_SPEC} is the server config ({@code pseudocore-server.toml}):
- * per-world gameplay tuning, the entity blacklist.</p>
+ * per-world gameplay tuning - the entity blacklist and the per-tier capture
+ * limits.</p>
  *
  * <p>{@link #INTEGRATIONS_SPEC} is a common config
  * ({@code pseudocore-common.toml}) holding the integration switches. It is
@@ -19,6 +26,14 @@ import java.util.List;
  * construction, so conditions, mixins and tooltips can all consult it.</p>
  */
 public final class PseudocoreConfig {
+
+    /** The twelve tier keys, in ascending tier order. Declared first: the
+     * config-building static block below runs during class init and its
+     * constructor reads this list. */
+    private static final List<String> TIER_NAMES = List.of(
+            "copper", "iron", "silver", "gold", "netherite",
+            "lowMagisteel", "highMagisteel", "pureMagisteel", "mithril", "orichalcum", "adamantite",
+            "hihiirokane");
 
     public static final Common COMMON;
     public static final ModConfigSpec COMMON_SPEC;
@@ -66,6 +81,36 @@ public final class PseudocoreConfig {
         return integrationEnabled(INTEGRATIONS.iceAndFireEnabled);
     }
 
+    /**
+     * The capture limits of the tier an item belongs to - the iron pseudocore's,
+     * say. Items that are not tiers get the permissive no-op limits, so an
+     * unknown item never accidentally limits anything.
+     */
+    public static TierLimits tierLimits(Item item) {
+        return COMMON.limits(tierKey(item));
+    }
+
+    /**
+     * The config key of an item's tier: {@code iron_pseudocore} -> {@code iron},
+     * {@code low_magisteel_pseudocore} -> {@code lowMagisteel}. Empty for items
+     * that are not pseudocore tiers.
+     */
+    public static String tierKey(Item item) {
+        String path = BuiltInRegistries.ITEM.getKey(item).getPath();
+        if (!path.endsWith("_pseudocore")) {
+            return "";
+        }
+        String metal = path.substring(0, path.length() - "_pseudocore".length());
+        String[] parts = metal.split("_", -1);
+        StringBuilder key = new StringBuilder(parts[0]);
+        for (int i = 1; i < parts.length; i++) {
+            if (!parts[i].isEmpty()) {
+                key.append(Character.toUpperCase(parts[i].charAt(0))).append(parts[i].substring(1));
+            }
+        }
+        return TIER_NAMES.contains(key.toString()) ? key.toString() : "";
+    }
+
     /** The integration switches, in {@code pseudocore-common.toml}. */
     public static final class Integrations {
         public final ModConfigSpec.BooleanValue tensuraEnabled;
@@ -98,6 +143,8 @@ public final class PseudocoreConfig {
 
     public static final class Common {
         public final ModConfigSpec.ConfigValue<List<? extends String>> blacklistedEntities;
+
+        private final Map<String, TierSection> tiers;
 
         public Common(ModConfigSpec.Builder builder) {
             builder.push("pseudocore");
@@ -226,6 +273,32 @@ public final class PseudocoreConfig {
                             "guardribbits:guard_ribbit",
                             "minecolonies:citizen"
                     ), () -> "", entry -> entry instanceof String s && s.contains(":"));
+
+            builder.push("tiers");
+            Map<String, TierSection> tierSections = new LinkedHashMap<>();
+            for (String tier : TIER_NAMES) {
+                builder.push(tier);
+                ModConfigSpec.DoubleValue maxEP = builder
+                        .comment(
+                                "The highest EP a mob may have to be capturable by this tier.",
+                                "0 disables the cap. EP only exists while Tensura's integration",
+                                "is active, so the cap is only enforceable then.")
+                        .defineInRange("maxEP", 0.0D, 0.0D, Double.MAX_VALUE);
+                ModConfigSpec.BooleanValue tamed = builder
+                        .comment(
+                                "Whether mobs tamed in the vanilla sense may be captured by this",
+                                "tier. The anti-theft rule is separate and always applies.")
+                        .define("allowTamedMobs", true);
+                ModConfigSpec.BooleanValue named = builder
+                        .comment(
+                                "Whether mobs that Tensura's naming system has named may be",
+                                "captured by this tier.")
+                        .define("allowTensuraNamed", true);
+                builder.pop();
+                tierSections.put(tier, new TierSection(maxEP, tamed, named));
+            }
+            builder.pop();
+            tiers = Collections.unmodifiableMap(tierSections);
             builder.pop();
         }
 
@@ -236,6 +309,72 @@ public final class PseudocoreConfig {
                 }
             }
             return false;
+        }
+
+        /**
+         * The three live values of one tier's section, or empty for an unknown
+         * tier key.
+         */
+        public Optional<TierSection> tier(String key) {
+            return Optional.ofNullable(tiers.get(key));
+        }
+
+        /**
+         * The resolved capture limits of one tier. Unknown or empty tier keys
+         * return {@link TierLimits#PERMISSIVE}, so an item outside the twelve
+         * tiers never limits anything.
+         */
+        public TierLimits limits(String key) {
+            TierSection section = tiers.get(key);
+            return section == null ? TierLimits.PERMISSIVE
+                    : new TierLimits(section.maxEP.get(), section.allowTamedMobs.get(),
+                            section.allowTensuraNamed.get());
+        }
+    }
+
+    /**
+     * The capture limits one tier enforces, resolved from the config at read
+     * time. {@link #PERMISSIVE} is the no-op for anything without a tier
+     * section, so an unknown item never limits anything.
+     */
+    public static final class TierLimits {
+        static final TierLimits PERMISSIVE = new TierLimits(0.0D, true, true);
+
+        private final double maxEP;
+        private final boolean allowTamedMobs;
+        private final boolean allowTensuraNamed;
+
+        TierLimits(double maxEP, boolean allowTamedMobs, boolean allowTensuraNamed) {
+            this.maxEP = maxEP;
+            this.allowTamedMobs = allowTamedMobs;
+            this.allowTensuraNamed = allowTensuraNamed;
+        }
+
+        /** Highest capturable EP; {@code 0} disables the cap. */
+        public double maxEP() {
+            return maxEP;
+        }
+
+        public boolean allowTamedMobs() {
+            return allowTamedMobs;
+        }
+
+        public boolean allowTensuraNamed() {
+            return allowTensuraNamed;
+        }
+    }
+
+    /** The three live config values of one tier's section. */
+    public static final class TierSection {
+        public final ModConfigSpec.DoubleValue maxEP;
+        public final ModConfigSpec.BooleanValue allowTamedMobs;
+        public final ModConfigSpec.BooleanValue allowTensuraNamed;
+
+        TierSection(ModConfigSpec.DoubleValue maxEP, ModConfigSpec.BooleanValue allowTamedMobs,
+                    ModConfigSpec.BooleanValue allowTensuraNamed) {
+            this.maxEP = maxEP;
+            this.allowTamedMobs = allowTamedMobs;
+            this.allowTensuraNamed = allowTensuraNamed;
         }
     }
 }

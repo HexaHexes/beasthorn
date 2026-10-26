@@ -99,6 +99,28 @@ final class TensuraAccess {
         return exist.getPermanentOwner() != null || exist.getTemporaryOwner() != null;
     }
 
+    /**
+     * Live EP - Tensura's own {@code getEP()}, aura plus magicule. The live
+     * storage rather than NBT, since the caller has the entity in hand.
+     */
+    static Optional<Double> readEp(LivingEntity entity) {
+        ExistenceStorage exist = readExistence(entity);
+        if (exist == null) return Optional.empty();
+        return Optional.of(exist.getEP());
+    }
+
+    /**
+     * Whether Tensura's naming system has given this mob a name - not a vanilla
+     * custom name. {@code ExistenceStorage#getName} is what Tensura's own naming
+     * flow writes.
+     */
+    static boolean isNamed(LivingEntity entity) {
+        ExistenceStorage exist = readExistence(entity);
+        if (exist == null) return false;
+        String name = exist.getName();
+        return name != null && !name.isBlank();
+    }
+
     static Optional<UUID> readOwner(LivingEntity entity) {
         ExistenceStorage exist = readExistence(entity);
         if (exist == null) return Optional.empty();

@@ -118,6 +118,25 @@ public class PseudocoreItem extends Item {
                     target.getType().getDescription()));
         }
 
+        // Per-tier capture limits - server-side like the blacklist, since they
+        // read the SERVER config. An item outside the twelve tiers resolves to
+        // the permissive no-op limits, so nothing else changes behaviour.
+        PseudocoreConfig.TierLimits limits = PseudocoreConfig.tierLimits(stack.getItem());
+
+        if (!limits.allowTamedMobs() && isVanillaTamed(target)) {
+            return refuse(player, Component.translatable("pseudocore.message.tamed"));
+        }
+        if (!limits.allowTensuraNamed() && TensuraBridge.isNamed(target)) {
+            return refuse(player, Component.translatable("pseudocore.message.named"));
+        }
+        if (limits.maxEP() > 0.0D) {
+            double ep = TensuraBridge.readEp(target).orElse(0.0D);
+            if (ep > limits.maxEP()) {
+                return refuse(player, Component.translatable("pseudocore.message.too_powerful",
+                        target.getType().getDescription()));
+            }
+        }
+
         CompoundTag data = EntityDataHelper.saveWithoutId(target);
         UUID uuid = target.getUUID();
 
@@ -180,6 +199,11 @@ public class PseudocoreItem extends Item {
     private static boolean isLeashed(LivingEntity target) {
         // Leash state is exposed through Leashable, which Mob implements.
         return target instanceof Leashable leashable && leashable.isLeashed();
+    }
+
+    /** Tamed in the vanilla sense - the {@code allowTamedMobs} config axis. */
+    private static boolean isVanillaTamed(LivingEntity target) {
+        return target instanceof TamableAnimal tamable && tamable.isTame();
     }
 
     // ------------------------------------------------------------------

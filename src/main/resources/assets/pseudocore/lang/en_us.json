@@ -14,6 +14,8 @@
   "item.pseudocore.hihiirokane_pseudocore": "Hihi'irokane Pseudocore",
   "pseudocore.message.already_full": "This horn already holds a creature.",
   "pseudocore.message.owned": "This creature is owned by another player.",
+  "pseudocore.message.tamed": "This tier cannot capture tamed creatures.",
+  "pseudocore.message.named": "This tier cannot capture named creatures.",
   "pseudocore.message.busy": "This creature cannot be captured right now.",
   "pseudocore.message.too_powerful": "The %s is too powerful to be captured by this horn."
 }
