@@ -1,0 +1,9 @@
+﻿{
+  "replace": false,
+  "values": [
+    {
+      "id": "tensura:low_magisteel_ingot",
+      "required": false
+    }
+  ]
+}

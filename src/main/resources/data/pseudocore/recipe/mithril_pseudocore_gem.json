@@ -1,0 +1,39 @@
+﻿{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "I": {
+      "tag": "c:ingots/mithril"
+    },
+    "G": {
+      "tag": "c:gems"
+    }
+  },
+  "pattern": [
+    " I ",
+    "IGI",
+    " I "
+  ],
+  "result": {
+    "id": "pseudocore:mithril_pseudocore",
+    "count": 1
+  },
+  "show_notification": true,
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:and",
+      "values": [
+        {
+          "type": "neoforge:mod_loaded",
+          "modid": "tensura"
+        },
+        {
+          "type": "neoforge:not",
+          "value": {
+            "type": "pseudocore:tensura_active"
+          }
+        }
+      ]
+    }
+  ]
+}
