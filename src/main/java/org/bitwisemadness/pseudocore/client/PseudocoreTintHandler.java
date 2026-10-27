@@ -8,6 +8,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
 import org.bitwisemadness.pseudocore.item.component.ContainedMobComponent;
 import org.bitwisemadness.pseudocore.registry.ModDataComponents;
+import org.bitwisemadness.pseudocore.util.VariantHelper;
 
 import java.util.Map;
 
@@ -59,6 +60,56 @@ public final class PseudocoreTintHandler {
                 BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath(), 0xFFFFFFFF);
     }
 
+    /**
+     * Curated orb colours for the variants whose names are literally colours:
+     * Tensura's slime dyes and the direwolf fangs. Keyed by item path plus the
+     * lowercased variant text; every other variant derives a stable colour from
+     * its name instead.
+     */
+    private static final Map<String, Integer> CURATED_ORB_COLORS = Map.ofEntries(
+            Map.entry("slime:red", 0xFFB02E26),
+            Map.entry("slime:orange", 0xFFF9801D),
+            Map.entry("slime:yellow", 0xFFFED83D),
+            Map.entry("slime:lime", 0xFF80C71F),
+            Map.entry("slime:green", 0xFF5E7C16),
+            Map.entry("slime:cyan", 0xFF169C9C),
+            Map.entry("slime:light blue", 0xFF3AB3DA),
+            Map.entry("slime:blue", 0xFF3C44AA),
+            Map.entry("slime:purple", 0xFF8932B8),
+            Map.entry("slime:magenta", 0xFFC74EBD),
+            Map.entry("slime:pink", 0xFFF38BAA),
+            Map.entry("slime:brown", 0xFF835432),
+            Map.entry("slime:gray", 0xFF474F52),
+            Map.entry("slime:light gray", 0xFF9D9D97),
+            Map.entry("slime:white", 0xFFF9FFFE),
+            Map.entry("direwolf:red fang", 0xFFB02E26),
+            Map.entry("direwolf:green fang", 0xFF5E7C16),
+            Map.entry("direwolf:blue fang", 0xFF3C44AA),
+            Map.entry("direwolf:brown fang", 0xFF835432),
+            Map.entry("direwolf:purple fang", 0xFF8932B8),
+            Map.entry("direwolf:black fang", 0xFF1D1D21));
+
+    /**
+     * The orb colour of a stored mob, resolved in order: a curated colour when
+     * the mob's variant is one whose name is literally a colour; otherwise a
+     * stable colour derived from the variant name itself, so two variants of one
+     * species read differently while staying deterministic across sessions and
+     * clients; and for mobs with no readable variant, the species' spawn-egg
+     * primary, with the stable id-derived colour as the last resort.
+     */
+    private static int orbColor(ContainedMobComponent comp) {
+        ResourceLocation type = comp.entityType();
+
+        VariantHelper.Variant variant = VariantHelper.variantOf(type, comp.entityData());
+        if (variant != null) {
+            String key = type.getPath() + ":" + variant.text().toLowerCase(java.util.Locale.ROOT);
+            Integer curated = CURATED_ORB_COLORS.get(key);
+            return curated != null ? curated : stableColorFrom(key) | 0xFF000000;
+        }
+
+        return resolvePrimaryColor(type);
+    }
+
     private PseudocoreTintHandler() {
     }
 
@@ -78,8 +129,7 @@ public final class PseudocoreTintHandler {
             return bodyColor(stack);
         }
         ContainedMobComponent comp = stack.get(ModDataComponents.CONTAINED_MOB.get());
-        int rgb = comp == null ? FALLBACK : resolvePrimaryColor(comp.entityType());
-        return rgb | 0xFF000000;
+        return (comp == null ? FALLBACK : orbColor(comp)) | 0xFF000000;
     };
 
     /**
@@ -101,15 +151,19 @@ public final class PseudocoreTintHandler {
         return egg.getColor(0); // 0 = primary
     }
 
+    private static int stableColorFrom(ResourceLocation id) {
+        return stableColorFrom(id.toString());
+    }
+
     /**
-     * Deterministic fallback colour. Uses the id's own hash so it is stable
+     * Deterministic fallback colour. Uses the key's own hash so it is stable
      * across sessions and across clients, then forces high saturation and value
      * so an egg-less mob still reads as vivid as one with an egg. HSB is
      * converted by hand rather than via AWT, to keep the client free of an
      * unnecessary desktop-library dependency.
      */
-    private static int stableColorFrom(ResourceLocation id) {
-        float hue = Math.floorMod(id.hashCode(), 360) / 360.0F;
+    private static int stableColorFrom(String key) {
+        float hue = Math.floorMod(key.hashCode(), 360) / 360.0F;
         return hsbToRgb(hue, 0.75F, 0.95F) & 0xFFFFFF;
     }
 
