@@ -141,3 +141,9 @@ Copyright (c) 2026 Bitwise Madness.
 The horn's model silhouette and body texture are adapted from Ice and Fire / Ice and
 Fire CE and remain under **LGPL-2.1**; that third-party material is covered by
 [`NOTICE.md`](NOTICE.md), not by this mod's licence alone.
+
+## AI disclosure
+
+Parts of this project were written with the assistance of AI coding tools.
+AI-assisted code, data and documentation ship only after human review by the
+maintainers.
