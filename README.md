@@ -63,7 +63,8 @@ The item's look follows the Pseudocores of Tensura's anime and manga: a vessel
 with a cluster of coloured orbs, while the model silhouette stays adapted from
 Ice and Fire's horn. When a mob is stored, the item's **three small orbs** tint to
 that mob's spawn-egg color -- vivid, and only the orbs. Mob types with no spawn
-egg get a stable color derived from their id.
+egg get a stable color derived from their id. Each tier's body also carries its
+metal's colour -- the iron tier's texture as drawn, the rest tinted from it.
 
 ## Ice and Fire dragons stay on Ice and Fire's horn
 

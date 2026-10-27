@@ -18,6 +18,7 @@ import org.bitwisemadness.pseudocore.registry.ModDataComponents;
 import org.bitwisemadness.pseudocore.registry.ModItems;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * The per-tier capture limits: every tier has a config section, the sections
@@ -43,6 +44,25 @@ public final class TierCaptureConfigGameTests {
             "copper", "iron", "silver", "gold", "netherite",
             "lowMagisteel", "highMagisteel", "pureMagisteel", "mithril", "orichalcum", "adamantite",
             "hihiirokane");
+
+    /**
+     * The default EP caps, following Tensura's own EP progression (see the tier
+     * list in {@code PseudocoreConfig}). Hihi'irokane, the cap of caps, is
+     * uncapped.
+     */
+    private static final Map<String, Double> DEFAULT_MAX_EP = Map.ofEntries(
+            Map.entry("copper", 1_000.0),
+            Map.entry("iron", 5_000.0),
+            Map.entry("silver", 10_000.0),
+            Map.entry("gold", 25_000.0),
+            Map.entry("netherite", 75_000.0),
+            Map.entry("lowMagisteel", 100_000.0),
+            Map.entry("highMagisteel", 150_000.0),
+            Map.entry("pureMagisteel", 200_000.0),
+            Map.entry("mithril", 300_000.0),
+            Map.entry("orichalcum", 500_000.0),
+            Map.entry("adamantite", 1_000_000.0),
+            Map.entry("hihiirokane", 0.0));
 
     private TierCaptureConfigGameTests() {
     }
@@ -70,20 +90,20 @@ public final class TierCaptureConfigGameTests {
     }
 
     @GameTest(template = "test_area")
-    public static void everyTierSectionExistsAndDefaultsPermissive(GameTestHelper helper) {
+    public static void everyTierSectionExistsWithItsDefaultCap(GameTestHelper helper) {
         for (String key : TIER_KEYS) {
             PseudocoreConfig.TierSection section = PseudocoreConfig.COMMON.tier(key).orElse(null);
             check(section != null, "no config section for tier " + key);
-            check(section.maxEP.get() == 0.0D,
-                    key + ".maxEP must default to 0 (no cap), got " + section.maxEP.get());
-            check(section.allowTamedMobs.get(),
-                    key + " must default to allowing tamed mobs");
-            check(section.allowTensuraNamed.get(),
-                    key + " must default to allowing named mobs");
+            double expectedMaxEP = DEFAULT_MAX_EP.get(key);
+            check(section.maxEP.get() == expectedMaxEP,
+                    key + ".maxEP must default to " + expectedMaxEP + " (Tensura EP progression), got "
+                            + section.maxEP.get());
+            check(section.allowTamedMobs.get(), key + " must default to allowing tamed mobs");
+            check(section.allowTensuraNamed.get(), key + " must default to allowing named mobs");
 
             PseudocoreConfig.TierLimits limits = PseudocoreConfig.COMMON.limits(key);
-            check(limits.maxEP() == 0.0D && limits.allowTamedMobs() && limits.allowTensuraNamed(),
-                    "the resolved limits for " + key + " must match the section's permissive defaults");
+            check(limits.maxEP() == expectedMaxEP && limits.allowTamedMobs() && limits.allowTensuraNamed(),
+                    "the resolved limits for " + key + " must match the section's defaults");
         }
 
         helper.succeed();

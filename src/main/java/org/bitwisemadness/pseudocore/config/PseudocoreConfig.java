@@ -10,6 +10,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Mod config, split by where the value has to be readable.
@@ -27,13 +29,42 @@ import java.util.Optional;
  */
 public final class PseudocoreConfig {
 
-    /** The twelve tier keys, in ascending tier order. Declared first: the
-     * config-building static block below runs during class init and its
-     * constructor reads this list. */
-    private static final List<String> TIER_NAMES = List.of(
-            "copper", "iron", "silver", "gold", "netherite",
-            "lowMagisteel", "highMagisteel", "pureMagisteel", "mithril", "orichalcum", "adamantite",
-            "hihiirokane");
+    /**
+     * The twelve tiers, in ascending order, each with its default EP cap.
+     * Declared first: the config-building static block below runs during class
+     * init and its constructor reads this list.
+     *
+     * <p>The caps follow Tensura's own EP progression, anchored to its
+     * {@code entity_existence} datapack (EP = aura + magicule; unconfigured mobs
+     * such as cows sit at the 100 EP constructor floor): copper takes slimes and
+     * goblins (~1k), iron takes orcs (~3-6k), silver lizardmen and lesser
+     * daemons (~8-9k), netherite greater daemons (~70k), the magisteel ladder
+     * spans orc lords through arch daemons and ifrit (~90-150k), mithril takes
+     * an orc disaster (~250k), and adamantite the top named bosses (~1M).
+     * Hihi'irokane is uncapped: the cap of caps must not be the thing that says
+     * no. Between anchors the values interpolate.</p>
+     */
+    private static final List<Tier> TIERS = List.of(
+            new Tier("copper", 1_000),
+            new Tier("iron", 5_000),
+            new Tier("silver", 10_000),
+            new Tier("gold", 25_000),
+            new Tier("netherite", 75_000),
+            new Tier("lowMagisteel", 100_000),
+            new Tier("highMagisteel", 150_000),
+            new Tier("pureMagisteel", 200_000),
+            new Tier("mithril", 300_000),
+            new Tier("orichalcum", 500_000),
+            new Tier("adamantite", 1_000_000),
+            new Tier("hihiirokane", 0));
+
+    /** One tier's config key and default EP cap. */
+    private record Tier(String key, double defaultMaxEP) {
+    }
+
+    /** The tier keys, derived once for the item-to-tier lookup. */
+    private static final Set<String> TIER_KEYS =
+            TIERS.stream().map(Tier::key).collect(Collectors.toUnmodifiableSet());
 
     public static final Common COMMON;
     public static final ModConfigSpec COMMON_SPEC;
@@ -108,7 +139,7 @@ public final class PseudocoreConfig {
                 key.append(Character.toUpperCase(parts[i].charAt(0))).append(parts[i].substring(1));
             }
         }
-        return TIER_NAMES.contains(key.toString()) ? key.toString() : "";
+        return TIER_KEYS.contains(key.toString()) ? key.toString() : "";
     }
 
     /** The integration switches, in {@code pseudocore-common.toml}. */
@@ -276,14 +307,16 @@ public final class PseudocoreConfig {
 
             builder.push("tiers");
             Map<String, TierSection> tierSections = new LinkedHashMap<>();
-            for (String tier : TIER_NAMES) {
-                builder.push(tier);
+            for (Tier tier : TIERS) {
+                builder.push(tier.key());
                 ModConfigSpec.DoubleValue maxEP = builder
                         .comment(
                                 "The highest EP a mob may have to be capturable by this tier.",
-                                "0 disables the cap. EP only exists while Tensura's integration",
-                                "is active, so the cap is only enforceable then.")
-                        .defineInRange("maxEP", 0.0D, 0.0D, Double.MAX_VALUE);
+                                "0 disables the cap - the default for hihi'irokane, which may",
+                                "capture anything. EP only exists while Tensura's integration is",
+                                "active, so the cap is only enforceable then. The defaults follow",
+                                "Tensura's own EP progression; see the tier list in the code.")
+                        .defineInRange("maxEP", tier.defaultMaxEP(), 0.0D, Double.MAX_VALUE);
                 ModConfigSpec.BooleanValue tamed = builder
                         .comment(
                                 "Whether mobs tamed in the vanilla sense may be captured by this",
@@ -295,7 +328,7 @@ public final class PseudocoreConfig {
                                 "captured by this tier.")
                         .define("allowTensuraNamed", true);
                 builder.pop();
-                tierSections.put(tier, new TierSection(maxEP, tamed, named));
+                tierSections.put(tier.key(), new TierSection(maxEP, tamed, named));
             }
             builder.pop();
             tiers = Collections.unmodifiableMap(tierSections);
