@@ -1,0 +1,63 @@
+# Repo rules — Pseudocore
+
+Repo-specific rules and notes. The org-wide `AGENTS.md` beside this file is
+maintained in [`neoforge-mod-template`](https://github.com/HexaHexes/neoforge-mod-template)
+and pulled in verbatim - **never hand-edit it.** Everything in this file is this
+repo's own and is edited freely; keep it aligned with the org rules rather than
+restating them.
+
+**Repo:** `HexaHexes/pseudocore` · **Mod ID:** `pseudocore` · **Branch:** `main`
+**Platform:** Minecraft 1.21.1 / NeoForge 21.1.259 / JDK 21 · **Gradle:** 9.2.1 (wrapper committed)
+**Jar:** `build/libs/pseudocore-<version>.jar`
+
+Adds a single item - the **Pseudocore** - that captures any mob with all of its NBT,
+holds it, and lets you carry/sell/trade it. Inspired by Ice and Fire's Dragon Horn but
+generalized to any mob. **Runs standalone** - every mod integration is optional.
+
+**Dependencies**
+- Required: none beyond Minecraft/NeoForge.
+- Optional (each independently): Tensura (`tensura`) - EP tooltip + Tensura ownership
+  fields; ManasCore (`manascore`) - supports Tensura; Ice and Fire CE (`iceandfire`) -
+  Dragon Horn ownership mixin + IaF variant names; Mobs of Mythology; Mysticism.
+
+**Test:** `./gradlew runGameTestServer` - GameTests for the Lightman's Currency trade
+path. (Note: this repo uses `runGameTestServer`, not `runGametest`.)
+
+**Remote:** `github.com/HexaHexes/pseudocore` (public, default branch `main`).
+
+---
+
+## Gotchas (do not regress them)
+
+- **`NOTICE.md` is mandatory and must never be deleted.** The horn's model silhouette
+  and body texture are adapted from Ice and Fire / Ice and Fire CE and remain under
+  **LGPL-2.1**; that third-party material is not covered by this mod's licence. Keep the
+  full attribution and the list of modifications.
+- **No icons.** The `icon/` listing-art folder and the in-game `META-INF/icon.png` have
+  been removed per project convention - do not re-add them unless the user explicitly asks.
+- Capture is guarded regardless of gamerule: only ownerless mobs or mobs you own; not
+  leashed or carrying passengers. The boss/dragon blacklist lives in
+  `config/pseudocore-server.toml`.
+- Ownership-transfer gamerules (`pseudocoreOwnershipTransfer`,
+  `pseudocoreDragonOwnershipTransfer`) both default to `false`.
+- The Ice and Fire Dragon Horn ownership mixin is a separate, opt-in integration - if
+  Ice and Fire CE is removed the mixin simply does not load.
+- ManasCore's module jars nest under `META-INF/jars/` inside the core artifact and are
+  extracted by `extractManascoreModules` for compilation.
+
+## Scope doctrine - repo additions
+
+- **Mixins are sanctioned here** as opt-in integrations (the Ice and Fire Dragon Horn
+  ownership mixin loads only when Ice and Fire CE is present). They are not a general
+  licence: the org rule "public API only, no mixins" still applies to new addon repos.
+
+## Naming - this repo
+
+- Repo and folder: `pseudocore`; `mod_id`: `pseudocore`; Java base package
+  `org.bitwisemadness.pseudocore`, with the Maven `group` in `build.gradle` matching.
+
+## CI & release model - this repo
+
+- `ci.yml` runs the template's three checks (junit, gametest, version-bump).
+- No `release.yml` yet: the repo ships no release workflow - when the template's
+  release workflow lands here it tags and publishes on a version bump.
