@@ -1,0 +1,37 @@
+{
+  "display": {
+    "icon": {
+      "id": "iceandfire:dragon_horn"
+    },
+    "title": {
+      "translate": "advancements.iceandfire.dragon_horn.title"
+    },
+    "description": {
+      "translate": "advancements.iceandfire.dragon_horn.description"
+    }
+  },
+  "parent": "iceandfire:iceandfire/dragon_egg",
+  "criteria": {
+    "obtain_dragon_pseudocore": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "pseudocore:copper_dragon_pseudocore",
+              "pseudocore:iron_dragon_pseudocore",
+              "pseudocore:silver_dragon_pseudocore",
+              "pseudocore:gold_dragon_pseudocore",
+              "pseudocore:netherite_dragon_pseudocore"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "obtain_dragon_pseudocore"
+    ]
+  ]
+}
