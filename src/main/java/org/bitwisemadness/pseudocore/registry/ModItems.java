@@ -5,6 +5,7 @@ import net.minecraft.world.item.Rarity;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
+import org.bitwisemadness.pseudocore.item.DragonPseudocoreItem;
 import org.bitwisemadness.pseudocore.item.PseudocoreItem;
 
 import java.util.ArrayList;
@@ -20,6 +21,9 @@ import java.util.List;
  * #TENSURA_TIERS}) only when Tensura is - without one of those mods there would be
  * no way to make the item, which would sit in the creative tab as a dead
  * entry.</p>
+ *
+ * <p>The dragon line ({@link #DRAGON_TIERS}) registers only with Ice and Fire CE,
+ * for the same reason: without it there are no dragons to capture.</p>
  *
  * <p>The integration switches do <b>not</b> gate registration, deliberately:
  * these metals are materials the mods add to the world, not integration content.
@@ -55,15 +59,38 @@ public final class ModItems {
      */
     public static final List<DeferredItem<PseudocoreItem>> TENSURA_TIERS = registerTensuraTiers();
 
+    /**
+     * The dragon tiers - one per metal, in ascending order, for capturing Ice and
+     * Fire CE dragons. Empty unless IaF is installed: without it there are no
+     * dragons to capture and the items would be dead entries. As with the other
+     * mod-supplied tiers, registration follows mod presence (configs do not exist
+     * yet when it is decided); the integration switch gates behaviour, and the
+     * recipes use the mod-presence condition so a registered tier stays craftable.
+     *
+     * <p>Dragon pseudocores extend IaF's own DragonHornItem, so loading the item
+     * class requires IaF. That is safe here for the same reason the Tensura
+     * access classes are safe: this list is empty without IaF, so the supplier
+     * that constructs the items never runs, and a generic signature erases, so
+     * the class itself is never loaded.</p>
+     */
+    public static final List<DeferredItem<DragonPseudocoreItem>> DRAGON_TIERS = registerDragonTiers();
+
     /** Every registered tier, in ascending order. */
     private static final List<DeferredItem<PseudocoreItem>> TIERS = buildTiers();
 
     private ModItems() {
     }
 
-    /** The items of every registered tier, in ascending order. */
+    /** The items of every registered tier: the beast line, then the dragon line. */
     public static List<Item> all() {
-        return TIERS.stream().map(item -> (Item) item.get()).toList();
+        List<Item> items = new ArrayList<>(TIERS.size() + DRAGON_TIERS.size());
+        for (DeferredItem<PseudocoreItem> tier : TIERS) {
+            items.add(tier.get());
+        }
+        for (DeferredItem<DragonPseudocoreItem> tier : DRAGON_TIERS) {
+            items.add(tier.get());
+        }
+        return items;
     }
 
     /** Whether the silver tier exists in this environment. */
@@ -74,6 +101,11 @@ public final class ModItems {
     /** Whether the Tensura metal tiers exist in this environment. */
     public static boolean tensuraTiersAvailable() {
         return !TENSURA_TIERS.isEmpty();
+    }
+
+    /** Whether the dragon tiers exist in this environment. */
+    public static boolean dragonTiersAvailable() {
+        return !DRAGON_TIERS.isEmpty();
     }
 
     private static List<DeferredItem<PseudocoreItem>> buildTiers() {
@@ -107,6 +139,22 @@ public final class ModItems {
     private static boolean tensuraPresent() {
         ModList modList = ModList.get();
         return modList == null || modList.isLoaded("tensura");
+    }
+
+    private static List<DeferredItem<DragonPseudocoreItem>> registerDragonTiers() {
+        if (!iceAndFirePresent()) {
+            return List.of();
+        }
+        List<DeferredItem<DragonPseudocoreItem>> tiers = new ArrayList<>(5);
+        for (String metal : List.of("copper", "iron", "silver", "gold", "netherite")) {
+            tiers.add(ITEMS.register(metal + "_dragon_pseudocore", () -> new DragonPseudocoreItem()));
+        }
+        return List.copyOf(tiers);
+    }
+
+    private static boolean iceAndFirePresent() {
+        ModList modList = ModList.get();
+        return modList == null || modList.isLoaded("iceandfire");
     }
 
     private static DeferredItem<PseudocoreItem> register(String name) {

@@ -62,6 +62,21 @@ public final class PseudocoreConfig {
     private record Tier(String key, double defaultMaxEP) {
     }
 
+    /** One dragon tier's config key and default growth-stage cap. */
+    private record DragonTier(String key, int defaultMaxStage) {
+    }
+
+    /**
+     * The five dragon tiers, in ascending order. Stage defaults follow the tier
+     * ladder: copper 1 through netherite 5.
+     */
+    private static final List<DragonTier> DRAGON_TIERS = List.of(
+            new DragonTier("copper", 1),
+            new DragonTier("iron", 2),
+            new DragonTier("silver", 3),
+            new DragonTier("gold", 4),
+            new DragonTier("netherite", 5));
+
     /** The tier keys, derived once for the item-to-tier lookup. */
     private static final Set<String> TIER_KEYS =
             TIERS.stream().map(Tier::key).collect(Collectors.toUnmodifiableSet());
@@ -142,6 +157,27 @@ public final class PseudocoreConfig {
         return TIER_KEYS.contains(key.toString()) ? key.toString() : "";
     }
 
+    /**
+     * The capture limits of the dragon tier an item belongs to. Items outside the
+     * five dragon tiers get the permissive no-op limits.
+     */
+    public static DragonTierLimits dragonTierLimits(Item item) {
+        return COMMON.dragonTierLimits(dragonTierKey(item));
+    }
+
+    /**
+     * The config key of a dragon item's tier: {@code copper_dragon_pseudocore} ->
+     * {@code copper}. Empty for items that are not dragon tiers.
+     */
+    public static String dragonTierKey(Item item) {
+        String path = BuiltInRegistries.ITEM.getKey(item).getPath();
+        if (!path.endsWith("_dragon_pseudocore")) {
+            return "";
+        }
+        String key = path.substring(0, path.length() - "_dragon_pseudocore".length());
+        return COMMON.dragonTier(key).isPresent() ? key : "";
+    }
+
     /** The integration switches, in {@code pseudocore-common.toml}. */
     public static final class Integrations {
         public final ModConfigSpec.BooleanValue tensuraEnabled;
@@ -176,6 +212,7 @@ public final class PseudocoreConfig {
         public final ModConfigSpec.ConfigValue<List<? extends String>> blacklistedEntities;
 
         private final Map<String, TierSection> tiers;
+        private final Map<String, DragonTierSection> dragonTiers;
 
         public Common(ModConfigSpec.Builder builder) {
             builder.push("pseudocore");
@@ -332,6 +369,37 @@ public final class PseudocoreConfig {
             }
             builder.pop();
             tiers = Collections.unmodifiableMap(tierSections);
+
+            builder.push("dragonTiers");
+            Map<String, DragonTierSection> dragonSections = new LinkedHashMap<>();
+            for (DragonTier tier : DRAGON_TIERS) {
+                builder.push(tier.key());
+                ModConfigSpec.DoubleValue maxEP = builder
+                        .comment(
+                                "The highest EP a captured dragon may have. 0 disables the cap.",
+                                "Only enforceable while Tensura's integration is active.")
+                        .defineInRange("maxEP", 0.0D, 0.0D, Double.MAX_VALUE);
+                ModConfigSpec.BooleanValue tamed = builder
+                        .comment(
+                                "Whether vanilla-tamed dragons may be captured by this tier. The",
+                                "anti-theft rule - only dragons you own - is separate and always applies.")
+                        .define("allowTamedMobs", true);
+                ModConfigSpec.BooleanValue named = builder
+                        .comment(
+                                "Whether dragons Tensura's naming system has named may be",
+                                "captured by this tier.")
+                        .define("allowTensuraNamed", true);
+                ModConfigSpec.IntValue maxStage = builder
+                        .comment(
+                                "The highest dragon growth stage (age in days / 25) this tier may",
+                                "capture. 0 disables the cap. Defaults follow the tier ladder:",
+                                "copper 1 through netherite 5.")
+                        .defineInRange("maxStage", tier.defaultMaxStage(), 0, Integer.MAX_VALUE);
+                builder.pop();
+                dragonSections.put(tier.key(), new DragonTierSection(maxEP, tamed, named, maxStage));
+            }
+            builder.pop();
+            dragonTiers = Collections.unmodifiableMap(dragonSections);
             builder.pop();
         }
 
@@ -362,6 +430,25 @@ public final class PseudocoreConfig {
             return section == null ? TierLimits.PERMISSIVE
                     : new TierLimits(section.maxEP.get(), section.allowTamedMobs.get(),
                             section.allowTensuraNamed.get());
+        }
+
+        /**
+         * The four live values of one dragon tier's section, or empty for an
+         * unknown tier key.
+         */
+        public Optional<DragonTierSection> dragonTier(String key) {
+            return Optional.ofNullable(dragonTiers.get(key));
+        }
+
+        /**
+         * The resolved capture limits of one dragon tier. Unknown or empty keys
+         * return {@link DragonTierLimits#PERMISSIVE}.
+         */
+        public DragonTierLimits dragonTierLimits(String key) {
+            DragonTierSection section = dragonTiers.get(key);
+            return section == null ? DragonTierLimits.PERMISSIVE
+                    : new DragonTierLimits(section.maxEP.get(), section.allowTamedMobs.get(),
+                            section.allowTensuraNamed.get(), section.maxStage.get());
         }
     }
 
@@ -408,6 +495,57 @@ public final class PseudocoreConfig {
             this.maxEP = maxEP;
             this.allowTamedMobs = allowTamedMobs;
             this.allowTensuraNamed = allowTensuraNamed;
+        }
+    }
+
+    /** The capture limits one dragon tier enforces, resolved at read time. */
+    public static final class DragonTierLimits {
+        static final DragonTierLimits PERMISSIVE = new DragonTierLimits(0.0D, true, true, 0);
+
+        private final double maxEP;
+        private final boolean allowTamedMobs;
+        private final boolean allowTensuraNamed;
+        private final int maxStage;
+
+        DragonTierLimits(double maxEP, boolean allowTamedMobs, boolean allowTensuraNamed, int maxStage) {
+            this.maxEP = maxEP;
+            this.allowTamedMobs = allowTamedMobs;
+            this.allowTensuraNamed = allowTensuraNamed;
+            this.maxStage = maxStage;
+        }
+
+        /** Highest capturable EP; {@code 0} disables the cap. */
+        public double maxEP() {
+            return maxEP;
+        }
+
+        public boolean allowTamedMobs() {
+            return allowTamedMobs;
+        }
+
+        public boolean allowTensuraNamed() {
+            return allowTensuraNamed;
+        }
+
+        /** Highest capturable growth stage; {@code 0} disables the cap. */
+        public int maxStage() {
+            return maxStage;
+        }
+    }
+
+    /** The four live config values of one dragon tier's section. */
+    public static final class DragonTierSection {
+        public final ModConfigSpec.DoubleValue maxEP;
+        public final ModConfigSpec.BooleanValue allowTamedMobs;
+        public final ModConfigSpec.BooleanValue allowTensuraNamed;
+        public final ModConfigSpec.IntValue maxStage;
+
+        DragonTierSection(ModConfigSpec.DoubleValue maxEP, ModConfigSpec.BooleanValue allowTamedMobs,
+                          ModConfigSpec.BooleanValue allowTensuraNamed, ModConfigSpec.IntValue maxStage) {
+            this.maxEP = maxEP;
+            this.allowTamedMobs = allowTamedMobs;
+            this.allowTensuraNamed = allowTensuraNamed;
+            this.maxStage = maxStage;
         }
     }
 }

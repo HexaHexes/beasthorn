@@ -1,13 +1,16 @@
 package org.bitwisemadness.pseudocore.mixin;
 
 import com.iafenvoy.iceandfire.item.component.DragonHornComponent;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -36,6 +39,12 @@ import java.util.List;
  * {@link org.bitwisemadness.pseudocore.mixin.IafMixinPlugin}, so it is skipped
  * entirely when IaF CE is not installed.</p>
  *
+ * <p><b>Capture</b> — IaF's method gates on the held stack being exactly its
+ * registered horn item, which the dragon pseudocores (subclasses) would fail.
+ * One expression-level mixin relaxes that check to "any Dragon Horn", so the
+ * tier gates in {@code DragonPseudocoreItem} can hand off to IaF's own capture
+ * code once a dragon passes them.</p>
+ *
  * <p><b>Ownership on release</b> — injected at the single {@code
  * Level#addFreshEntity} call inside {@code useOn}, so a released dragon joins
  * the world already owned by the releasee.</p>
@@ -57,6 +66,27 @@ import java.util.List;
  */
 @Mixin(value = com.iafenvoy.iceandfire.item.DragonHornItem.class, remap = true)
 public abstract class DragonHornItemMixin {
+
+    /**
+     * IaF's capture path opens with an item-identity check - "is this exactly my
+     * registered Dragon Horn?" - which a dragon pseudocore, a subclass, fails.
+     * This single expression relaxes to "is this any Dragon Horn", so the dragon
+     * line inherits IaF's own capture logic unchanged rather than this mod
+     * re-implementing it. Everything else in the method - the already-full
+     * check, the own-the-dragon guard, the storage write, the sound and the
+     * swing - runs exactly as IaF wrote it.
+     */
+    @ModifyExpressionValue(
+            method = "interactLivingEntity",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/item/ItemStack;is(Lnet/minecraft/world/item/Item;)Z"
+            )
+    )
+    private boolean pseudocore$acceptDragonPseudocores(boolean original, ItemStack stack, Player player,
+                                                       LivingEntity target, InteractionHand hand) {
+        return original || stack.getItem() instanceof com.iafenvoy.iceandfire.item.DragonHornItem;
+    }
 
     @Inject(
             method = "useOn",

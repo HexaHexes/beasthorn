@@ -1,0 +1,84 @@
+package org.bitwisemadness.pseudocore.item;
+
+import com.iafenvoy.iceandfire.entity.DragonBaseEntity;
+import com.iafenvoy.iceandfire.item.DragonHornItem;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import org.bitwisemadness.pseudocore.config.PseudocoreConfig;
+import org.bitwisemadness.pseudocore.util.TensuraBridge;
+
+/**
+ * A dragon pseudocore tier: Ice and Fire's own Dragon Horn, with a growth-stage
+ * cap.
+ *
+ * <p>Extending {@link DragonHornItem} is the whole design: a captured dragon
+ * keeps IaF's own storage, IaF's own release path, IaF's own tooltip (restyled by
+ * the Dragon Horn mixin like every other horn-shaped item here), and the
+ * ownership-transfer gamerule behaves identically. This class only adds the
+ * gates a tier exists to carry, checked before the capture is handed to
+ * IaF's proven code.</p>
+ *
+ * <p>The gates are server-side only: like the beast line's tier limits, they read
+ * the SERVER config, which a remote client cannot. The client keeps IaF's own
+ * prediction and the server has the final word, exactly as
+ * {@link PseudocoreItem#tryCapture} arranges it for the beast line.</p>
+ *
+ * <p>With the Ice and Fire integration switch off, every gate is skipped and the
+ * item behaves as IaF's own horn - the switch removes what this mod adds, never
+ * what IaF ships.</p>
+ */
+public class DragonPseudocoreItem extends DragonHornItem {
+
+    public DragonPseudocoreItem() {
+    }
+
+    @Override
+    public InteractionResult interactLivingEntity(
+            ItemStack stack, Player player, LivingEntity target, InteractionHand hand) {
+        // The gates read the server config, so they run on the server only; and
+        // they exist only while this mod's Ice and Fire integration is on.
+        if (player.level().isClientSide()
+                || !PseudocoreConfig.iceAndFireIntegrationEnabled()
+                || !(target instanceof DragonBaseEntity dragon)) {
+            return super.interactLivingEntity(stack, player, target, hand);
+        }
+
+        PseudocoreConfig.DragonTierLimits limits = PseudocoreConfig.dragonTierLimits(this);
+
+        if (!limits.allowTamedMobs() && dragon.isTame()) {
+            return refuse(player, Component.translatable("pseudocore.message.tamed"));
+        }
+        if (!limits.allowTensuraNamed() && TensuraBridge.isNamed(target)) {
+            return refuse(player, Component.translatable("pseudocore.message.named"));
+        }
+        if (limits.maxEP() > 0.0D) {
+            double ep = TensuraBridge.readEp(target).orElse(0.0D);
+            if (ep > limits.maxEP()) {
+                return refuse(player, Component.translatable("pseudocore.message.too_powerful",
+                        target.getType().getDescription()));
+            }
+        }
+        if (limits.maxStage() > 0 && dragon.getDragonStage() > limits.maxStage()) {
+            return refuse(player, Component.translatable("pseudocore.message.too_grown",
+                    target.getType().getDescription()));
+        }
+
+        return super.interactLivingEntity(stack, player, target, hand);
+    }
+
+    /**
+     * Refuse with an actionbar explanation, mirroring the beast line's wording
+     * path. PASS keeps the dragon's own interaction working, so a refused
+     * capture still lets the dragon be ridden or tamed as if the item were not
+     * held.
+     */
+    private static InteractionResult refuse(Player player, Component reason) {
+        player.displayClientMessage(reason.copy().withStyle(ChatFormatting.RED), true);
+        return InteractionResult.PASS;
+    }
+}

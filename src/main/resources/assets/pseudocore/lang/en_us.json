@@ -12,10 +12,16 @@
   "item.pseudocore.orichalcum_pseudocore": "Orichalcum Pseudocore",
   "item.pseudocore.adamantite_pseudocore": "Adamantite Pseudocore",
   "item.pseudocore.hihiirokane_pseudocore": "Hihi'irokane Pseudocore",
+  "item.pseudocore.copper_dragon_pseudocore": "Copper Dragon Pseudocore",
+  "item.pseudocore.iron_dragon_pseudocore": "Iron Dragon Pseudocore",
+  "item.pseudocore.silver_dragon_pseudocore": "Silver Dragon Pseudocore",
+  "item.pseudocore.gold_dragon_pseudocore": "Gold Dragon Pseudocore",
+  "item.pseudocore.netherite_dragon_pseudocore": "Netherite Dragon Pseudocore",
   "pseudocore.message.already_full": "This horn already holds a creature.",
   "pseudocore.message.owned": "This creature is owned by another player.",
   "pseudocore.message.tamed": "This tier cannot capture tamed creatures.",
   "pseudocore.message.named": "This tier cannot capture named creatures.",
+  "pseudocore.message.too_grown": "The %s has grown beyond this pseudocore's stage.",
   "pseudocore.message.busy": "This creature cannot be captured right now.",
   "pseudocore.message.too_powerful": "The %s is too powerful to be captured by this horn."
 }
