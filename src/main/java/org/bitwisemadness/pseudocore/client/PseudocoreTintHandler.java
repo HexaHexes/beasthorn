@@ -52,7 +52,12 @@ public final class PseudocoreTintHandler {
             Map.entry("mithril_pseudocore", 0xFFC7D9EE),
             Map.entry("orichalcum_pseudocore", 0xFFE5A44E),
             Map.entry("adamantite_pseudocore", 0xFF59627A),
-            Map.entry("hihiirokane_pseudocore", 0xFFE0513D));
+            Map.entry("hihiirokane_pseudocore", 0xFFE0513D),
+            Map.entry("copper_dragon_pseudocore", 0xFFE88C5A),
+            Map.entry("iron_dragon_pseudocore", 0xFFFFFFFF),
+            Map.entry("silver_dragon_pseudocore", 0xFFDDE4EA),
+            Map.entry("gold_dragon_pseudocore", 0xFFF6D75C),
+            Map.entry("netherite_dragon_pseudocore", 0xFF6A5F63));
 
     /** Opaque body tint for a tier; anything unmapped stays white (untouched). */
     private static int bodyColor(ItemStack stack) {
