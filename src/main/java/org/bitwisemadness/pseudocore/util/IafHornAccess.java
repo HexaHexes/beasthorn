@@ -3,8 +3,12 @@ package org.bitwisemadness.pseudocore.util;
 import com.iafenvoy.iceandfire.config.IafCommonConfig;
 import com.iafenvoy.iceandfire.item.component.DragonHornComponent;
 import net.minecraft.core.component.TypedDataComponent;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
+
+import java.util.UUID;
 
 /**
  * Reads Ice and Fire's Dragon Horn storage.
@@ -50,6 +54,53 @@ public final class IafHornAccess {
             }
         }
         return null;
+    }
+
+    /**
+     * The raw stored type id of a captured dragon, or null when the stack holds
+     * no dragon.
+     *
+     * <p>The one IaF-aware read the client needs for #65. The beast line keeps
+     * its captured mob in {@code pseudocore:contained_mob}, but a dragon core
+     * extends IaF's horn and stores it in IaF's own component instead, so every
+     * "is this core filled?" question has to ask both stores or it answers
+     * "empty" for every dragon.</p>
+     *
+     * <p>Callers get the raw {@link ResourceLocation} rather than a
+     * {@link DragonHornComponent}, so no client class has to import an IaF type
+     * to use this - that is the whole point of concentrating the read here.</p>
+     */
+    public static ResourceLocation storedDragonType(ItemStack stack) {
+        DragonHornComponent horn = read(stack);
+        return horn == null ? null : horn.entityType();
+    }
+
+    /**
+     * The raw stored entity data of a captured dragon, or null when the stack
+     * holds no dragon.
+     *
+     * <p>Second half of the same #65 read: the orb colour is computed from the
+     * frozen NBT (element plus the {@code Variant} string), so a caller that
+     * has the type id needs the tag alongside it. Returned as IaF writes it,
+     * with no normalisation - the beast line's component carries the same shape
+     * under {@code entityData()}.</p>
+     */
+    public static CompoundTag storedDragonData(ItemStack stack) {
+        DragonHornComponent horn = read(stack);
+        return horn == null ? null : horn.entityData();
+    }
+
+    /**
+     * The stored dragon's own UUID, or null when the stack holds no dragon.
+     *
+     * <p>Only needed to satisfy the shared record's shape - the orb colour is
+     * derived from the element and the stored {@code Variant} string, never from
+     * the UUID - but the component carries it and the release path restores it,
+     * so it is read from the same single lookup rather than faked.</p>
+     */
+    public static UUID storedDragonUuid(ItemStack stack) {
+        DragonHornComponent horn = read(stack);
+        return horn == null ? null : horn.entityUuid();
     }
 
     /** The growth addon whose stretch formula {@link DragonStages} mirrors. */

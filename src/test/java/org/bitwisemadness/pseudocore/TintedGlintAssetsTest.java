@@ -83,4 +83,43 @@ class TintedGlintAssetsTest {
         assertTrue(Files.exists(GLINT_SOURCE),
                 "the mixin depends on TintedGlint but the class is gone");
     }
+
+    /**
+     * Dragon cores store their capture in Ice and Fire's horn component rather
+     * than in {@code CONTAINED_MOB} (#65), so the three "is this core filled?"
+     * reads all had to learn the second store. Each of them forgetting is a
+     * silent regression to a white orb / no glint / empty art, none of which
+     * {@code runGameTestServer} can see.
+     */
+    @Test
+    void filledChecksReadBothStorageFormats() throws IOException {
+        String glint = Files.readString(GLINT_SOURCE);
+        assertTrue(glint.contains("IafHornAccess.storedDragonType"),
+                "TintedGlint must accept a dragon core as filled, or captured "
+                        + "dragons never glint (#65)");
+
+        String events = Files.readString(Path.of(
+                "src/main/java/org/bitwisemadness/pseudocore/client/PseudocoreClientEvents.java"));
+        assertTrue(events.contains("IafHornAccess.storedDragonType"),
+                "the pseudocore:filled item property must accept a dragon core, "
+                        + "or captured dragons keep the empty orb art (#65)");
+
+        String tint = Files.readString(Path.of(
+                "src/main/java/org/bitwisemadness/pseudocore/client/PseudocoreTintHandler.java"));
+        assertTrue(tint.contains("IafHornAccess.storedDragonType")
+                        && tint.contains("IafHornAccess.storedDragonData"),
+                "the orb tint must read a dragon core's element and variant, or "
+                        + "every dragon tints white in both modes (#65)");
+
+        // The point of concentrating the read: no client class may import IaF.
+        for (String clientSource : new String[]{
+                "src/main/java/org/bitwisemadness/pseudocore/client/TintedGlint.java",
+                "src/main/java/org/bitwisemadness/pseudocore/client/PseudocoreClientEvents.java",
+                "src/main/java/org/bitwisemadness/pseudocore/client/PseudocoreTintHandler.java"}) {
+            String source = Files.readString(Path.of(clientSource));
+            assertTrue(!source.contains("import com.iafenvoy"),
+                    "an IaF import crept into a client class, breaking the layering "
+                            + "rule that keeps Ice and Fire optional: " + clientSource);
+        }
+    }
 }

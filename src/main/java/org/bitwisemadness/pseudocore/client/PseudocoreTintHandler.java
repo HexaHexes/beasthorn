@@ -2,6 +2,7 @@ package org.bitwisemadness.pseudocore.client;
 
 import net.minecraft.client.color.item.ItemColor;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
@@ -10,9 +11,11 @@ import org.bitwisemadness.pseudocore.config.PseudocoreConfig;
 import org.bitwisemadness.pseudocore.item.component.ContainedMobComponent;
 import org.bitwisemadness.pseudocore.registry.ModDataComponents;
 import org.bitwisemadness.pseudocore.util.DragonTints;
+import org.bitwisemadness.pseudocore.util.IafHornAccess;
 import org.bitwisemadness.pseudocore.util.VariantHelper;
 
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Tints the three orbs in the Pseudocore texture to the captured mob's colour.
@@ -157,10 +160,31 @@ public final class PseudocoreTintHandler {
             return bodyColor(stack);
         }
         ContainedMobComponent comp = stack.get(ModDataComponents.CONTAINED_MOB.get());
+        if (comp != null) {
+            return orbColor(comp) | 0xFF000000;
+        }
+        // A dragon core stores its capture in Ice and Fire's horn component
+        // rather than in CONTAINED_MOB (#65), so without this read every dragon
+        // tinted white and the element/variant modes below were unreachable. The
+        // raw pieces are shaped into the same record the beast line already
+        // produces, so orbColor needs no second branch.
+        ResourceLocation dragonType = IafHornAccess.storedDragonType(stack);
+        if (dragonType != null) {
+            CompoundTag dragonData = IafHornAccess.storedDragonData(stack);
+            if (dragonData == null) {
+                dragonData = new CompoundTag();
+            }
+            // The UUID is unused by orbColor - the colour is derived from the
+            // element and the stored Variant string - and IaF's component
+            // carries one, so it is threaded through rather than invented.
+            UUID dragonUuid = IafHornAccess.storedDragonUuid(stack);
+            return orbColor(new ContainedMobComponent(dragonType,
+                    dragonUuid == null ? new UUID(0L, 0L) : dragonUuid, dragonData)) | 0xFF000000;
+        }
         // An empty horn is not tinted (#53): the dull empty-state art must
         // render exactly as drawn - multiplying it by a colour would double-dim
         // and muddy it. Filled horns keep the tint paths above untouched.
-        return comp == null ? 0xFFFFFFFF : orbColor(comp) | 0xFF000000;
+        return 0xFFFFFFFF;
     };
 
     /**

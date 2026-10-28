@@ -11,6 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import org.bitwisemadness.pseudocore.Pseudocore;
 import org.bitwisemadness.pseudocore.registry.ModDataComponents;
+import org.bitwisemadness.pseudocore.util.IafHornAccess;
 
 /**
  * The tinted enchantment glint for filled Pseudocores (#55): a RenderType that
@@ -113,7 +114,10 @@ public final class TintedGlint {
      * client that does not have it - while the id is there whatever is installed.
      */
     public static boolean isFilledPseudocore(ItemStack stack) {
-        if (!stack.has(ModDataComponents.CONTAINED_MOB.get())) {
+        // Either line's storage counts: the beast line writes CONTAINED_MOB, a
+        // dragon core stores it in Ice and Fire's horn component instead (#65).
+        if (!stack.has(ModDataComponents.CONTAINED_MOB.get())
+                && IafHornAccess.storedDragonType(stack) == null) {
             return false;
         }
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
