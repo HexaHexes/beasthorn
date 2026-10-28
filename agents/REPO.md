@@ -15,13 +15,17 @@ holds it, and lets you carry/sell/trade it. Inspired by Ice and Fire's Dragon Ho
 generalized to any mob. **Runs standalone** - every mod integration is optional.
 
 **Dependencies**
-- Required: none beyond Minecraft/NeoForge.
+- Required: Minecraft, NeoForge, **Mob Info Common** (`mob_info_common`) - the
+  shared variant-name and analysis-gating library this repo reads through the
+  `org.bitwisemadness.mobinfocommon` packages; it ships as its own mod.
 - Optional (each independently): Tensura (`tensura`) - EP tooltip + Tensura ownership
   fields; ManasCore (`manascore`) - supports Tensura; Ice and Fire CE (`iceandfire`) -
-  Dragon Horn ownership mixin + IaF variant names; Mobs of Mythology; Mysticism.
+  Dragon Horn ownership mixin. Mobs of Mythology and Mysticism need no compile
+  dependency here at all: their variant names moved into Mob Info Common.
 
 **Test:** `./gradlew runGameTestServer` - GameTests for the Lightman's Currency trade
-path. (Note: this repo uses `runGameTestServer`, not `runGametest`.)
+path and the tooltip gating (`TooltipGatingGameTests`). 22 `@GameTest` methods.
+(Note: this repo uses `runGameTestServer`, not `runGametest`.)
 
 **Remote:** `github.com/HexaHexes/pseudocore` (public, default branch `main`).
 
@@ -29,6 +33,13 @@ path. (Note: this repo uses `runGameTestServer`, not `runGametest`.)
 
 ## Gotchas (do not regress them)
 
+- **The variant logic lives in Mob Info Common now.** `VariantHelper` /
+  `VariantBridge` / `SpeciesWords` and the Mythology/Mysticism access classes
+  moved to the shared library; this repo calls them with its own
+  `TensuraBridge::isLoaded` as the Tensura gate, so the `tensuraIntegration`
+  switch still suppresses Tensura variant names. Do not copy logic back in.
+- **The Tensura compile pin is 2.0.1.3** (`8793360`), the version Mob Info
+  Common and Tensura Jade ship against. Bump deliberately, never implicitly.
 - **`NOTICE.md` is mandatory and must never be deleted.** The horn's model silhouette
   and body texture are adapted from Ice and Fire / Ice and Fire CE and remain under
   **LGPL-2.1**; that third-party material is not covered by this mod's licence. Keep the

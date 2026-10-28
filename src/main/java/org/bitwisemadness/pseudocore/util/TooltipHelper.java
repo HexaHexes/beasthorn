@@ -10,7 +10,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import org.bitwisemadness.mobinfocommon.analysis.AnalysisGating;
+import org.bitwisemadness.mobinfocommon.variant.VariantHelper;
 import org.bitwisemadness.pseudocore.config.PseudocoreConfig;
 
 import java.text.NumberFormat;
@@ -48,6 +51,20 @@ public final class TooltipHelper {
 
     public static void addLines(List<Component> tooltip, ResourceLocation typeId, CompoundTag data,
                                 HolderLookup.Provider registries) {
+        addLines(tooltip, typeId, data, registries, viewer());
+    }
+
+    /**
+     * As {@link #addLines(List, ResourceLocation, CompoundTag,
+     * HolderLookup.Provider)}, with the viewing player supplied - the
+     * game tests drive this overload with a mock player, since the real one
+     * only exists behind a client-only class.
+     *
+     * @param viewer whoever is reading the tooltip; null (no client player yet)
+     *               means nobody to gate by, so nothing is withheld
+     */
+    public static void addLines(List<Component> tooltip, ResourceLocation typeId, CompoundTag data,
+                                HolderLookup.Provider registries, Player viewer) {
         // Name - only if the mob carries a custom name. The name keeps whatever
         // colour codes it was given, so it reads exactly as it does overhead.
         Component customName = readCustomName(data, registries);
@@ -56,12 +73,18 @@ public final class TooltipHelper {
         }
 
         // Race - composed by the shared helper so the tooltip and the capture
-        // refusals can never disagree about what a stored mob is called.
+        // refusals can never disagree about what a stored mob is called. The
+        // helper reads the shared library, which is also what Tensura Jade's
+        // variant-qualified title is built from - one composition, one source.
         tooltip.add(line("Race", raceDisplay(typeId, data), ChatFormatting.AQUA));
 
-        // Owner - resolve the UUID to a player name where possible.
-        resolveOwner(data).ifPresent(uuid -> tooltip.add(
-                line("Owner", resolvePlayerName(uuid), ChatFormatting.GREEN)));
+        // Owner - resolve the UUID to a player name where possible. A
+        // Tensura-recorded owner is Tensura's information and answers to the
+        // analysis gate; vanilla's and Redomesticate's are not, and always show.
+        OwnerRef owner = resolveOwner(data);
+        if (owner != null && (!owner.fromTensura() || entitledToTensuraInfo(viewer))) {
+            tooltip.add(line("Owner", resolvePlayerName(owner.uuid()), ChatFormatting.GREEN));
+        }
 
         // Health - read from NBT, so it reflects the mob as captured.
         if (data != null && data.contains("Health")) {
@@ -73,10 +96,58 @@ public final class TooltipHelper {
             tooltip.add(line("Health", text, ChatFormatting.RED));
         }
 
-        // EP - Tensura only, and only when the stored NBT actually has it.
-        Optional<Double> ep = TensuraBridge.readEpFromNbt(data);
-        ep.ifPresent(value -> tooltip.add(
-                line("EP", formatEp(value), ChatFormatting.LIGHT_PURPLE)));
+        // EP - Tensura only, and only when the stored NBT actually has it, and
+        // only when the holder is entitled to Tensura's analysis. The value
+        // reads through the same recipe Tensura Jade's panel uses: exactly
+        // within the holder's grasp, the reach figure plus "+" beyond it -
+        // Tensura's own blur, from the shared library.
+        boolean respect = PseudocoreConfig.respectAnalysisGatingEnabled();
+        TensuraBridge.readEpFromNbt(data)
+                .filter(ep -> entitledToTensuraInfo(viewer))
+                .ifPresent(ep -> tooltip.add(line("EP",
+                        AnalysisGating.epReadout(viewer, ep, respect),
+                        ChatFormatting.LIGHT_PURPLE)));
+    }
+
+    /**
+     * Whether this viewer may see the Tensura-sourced facts on a tooltip - the
+     * EP line and the Tensura-recorded owner.
+     *
+     * <p>The gate is Tensura's own analysis, through the shared library that
+     * Tensura Jade gates its panel with, so neither mod becomes a way around
+     * the other's balance. No viewer to ask (a render with no client player
+     * yet) means nothing is withheld, and with Tensura absent - or its
+     * integration switched off - there is no Tensura information to gate in
+     * the first place, so the answer is yes rather than a crash on a missing
+     * attribute.</p>
+     */
+    private static boolean entitledToTensuraInfo(Player viewer) {
+        if (!TensuraBridge.isLoaded()) return true;
+        return AnalysisGating.allowedForEntity(viewer, PseudocoreConfig.respectAnalysisGatingEnabled());
+    }
+
+    /**
+     * The player reading the tooltip, or null where none exists.
+     *
+     * <p>The field read goes through {@code Object} on purpose. The verifier
+     * resolves a method's <b>whole</b> bytecode when the class is loaded, and
+     * {@code Minecraft#player} is typed {@code LocalPlayer} - a client-only
+     * class whose very load aborts a dedicated server. Reading it as
+     * {@code Object} and narrowing with {@code instanceof} keeps the only
+     * client-typed reference in this class out of the verifier's view, which
+     * is what lets the whole tooltip path stay server-loadable while still
+     * reaching the real viewer on the client.</p>
+     */
+    private static Player viewer() {
+        if (!CLIENT_DIST) return null;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null) return null;
+        Object player = mc.player;
+        return player instanceof Player known ? known : null;
+    }
+
+    /** Whichever system recorded the owner, so gating can tell Tensura's apart. */
+    private record OwnerRef(UUID uuid, boolean fromTensura) {
     }
 
     /**
@@ -96,14 +167,12 @@ public final class TooltipHelper {
      *         registry id through {@link #describeEntityType}
      */
     public static String raceDisplay(ResourceLocation typeId, CompoundTag data) {
-        VariantHelper.Variant variant = VariantHelper.variantOf(typeId, data);
-        String race = describeEntityType(typeId);
-        if (variant == null) {
-            return race;
-        }
-        return variant.replacesRace() || VariantHelper.alreadyNamesMob(variant.text(), race)
-                ? variant.text()
-                : variant.text() + " " + race;
+        // The gate is this mod's own bridge, so turning the Tensura integration
+        // off still suppresses Tensura variant names - passed per call rather
+        // than held as static state, which would leak into Tensura Jade's
+        // lookups in a pack that ships both mods.
+        VariantHelper.Variant variant = VariantHelper.variantOf(typeId, data, TensuraBridge::isLoaded);
+        return VariantHelper.qualifiedName(describeEntityType(typeId), variant);
     }
 
     /**
@@ -235,6 +304,15 @@ public final class TooltipHelper {
     }
 
     /**
+     * A labelled line whose value is already a component - the EP readout,
+     * whose blurred form carries Tensura's own translation keys and must not
+     * be flattened to a string first.
+     */
+    private static MutableComponent line(String label, Component value, ChatFormatting valueColor) {
+        return label(label).append(value.copy().withStyle(valueColor));
+    }
+
+    /**
      * A labelled line whose value brings its own styling — the mob's custom
      * name.
      *
@@ -289,25 +367,29 @@ public final class TooltipHelper {
      * Owner comes from whichever system actually holds it: Tensura's existence
      * storage first (the most common on this pack), then vanilla's Owner tag
      * used by tamed animals, then Redomesticate's owner tag.
+     *
+     * <p>Each is tagged with its source, because only Tensura's is gated on the
+     * analysis rules - a vanilla-tamed pet's owner is not Tensura's information
+     * to withhold.</p>
      */
-    private static Optional<UUID> resolveOwner(CompoundTag data) {
-        if (data == null) return Optional.empty();
+    private static OwnerRef resolveOwner(CompoundTag data) {
+        if (data == null) return null;
 
         Optional<UUID> tensura = TensuraBridge.readOwnerFromNbt(data);
-        if (tensura.isPresent()) return tensura;
+        if (tensura.isPresent()) return new OwnerRef(tensura.get(), true);
 
-        if (data.hasUUID("Owner")) return Optional.of(data.getUUID("Owner"));
+        if (data.hasUUID("Owner")) return new OwnerRef(data.getUUID("Owner"), false);
 
         // Redomesticate stores its owner under a namespaced key.
         if (data.contains("RedomesticateOwner")) {
             String raw = data.getString("RedomesticateOwner");
             try {
-                return Optional.of(UUID.fromString(raw));
+                return new OwnerRef(UUID.fromString(raw), false);
             } catch (Exception ignored) {
                 // fall through
             }
         }
-        return Optional.empty();
+        return null;
     }
 
     private static String resolvePlayerName(UUID uuid) {
@@ -343,11 +425,5 @@ public final class TooltipHelper {
             }
         }
         return 0.0F;
-    }
-
-    /** Group EP into thousands - Tensura EP values run large. */
-    private static String formatEp(double ep) {
-        long rounded = Math.round(ep);
-        return String.format("%,d", rounded);
     }
 }
