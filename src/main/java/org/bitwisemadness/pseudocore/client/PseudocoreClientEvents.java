@@ -1,7 +1,5 @@
 package org.bitwisemadness.pseudocore.client;
 
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
@@ -10,18 +8,16 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
-import net.neoforged.neoforge.client.event.RegisterRenderBuffersEvent;
-import net.neoforged.neoforge.client.event.RegisterShadersEvent;
 import org.bitwisemadness.pseudocore.Pseudocore;
 import org.bitwisemadness.pseudocore.registry.ModDataComponents;
 import org.bitwisemadness.pseudocore.registry.ModItems;
 import org.bitwisemadness.pseudocore.util.IafHornAccess;
 
-import java.io.IOException;
-
 /**
- * Client-only wiring. Registers the orb tint handler, the empty/filled
- * model predicate, and the tinted glint shader.
+ * Client-only wiring. Registers the orb tint handler and the empty/filled
+ * model predicate. The enchantment glint needs no client wiring at all: both
+ * item classes override {@code Item#isFoil}, which is vanilla's own decision
+ * point (#86).
  *
  * <p>Split from the tint logic itself so no client-only class is ever loaded
  * on a dedicated server.</p>
@@ -72,45 +68,5 @@ public final class PseudocoreClientEvents {
                                 || IafHornAccess.storedDragonType(stack) != null ? 1.0F : 0.0F);
             }
         });
-    }
-
-    /**
-     * Registers the tinted glint program (#55): vanilla's glint scroll, blend
-     * and fog, with a Color attribute so the shimmer multiplies by the quad's
-     * own colour - the same {@code ItemColors} result the orbs render with.
-     * NeoForge's event hands the instance to vanilla's shader lifecycle, and
-     * the consumer re-publishes it on reload. A load failure is caught here
-     * (the bus invokes listeners reflectively, so no checked exception may
-     * escape) and simply leaves the glint unavailable - see {@link TintedGlint}.
-     */
-    @SubscribeEvent
-    public static void onRegisterShaders(RegisterShadersEvent event) {
-        try {
-            ShaderInstance shader = new ShaderInstance(
-                    event.getResourceProvider(),
-                    ResourceLocation.fromNamespaceAndPath(Pseudocore.MOD_ID, "tinted_glint"),
-                    // Must match TintedGlint's RenderType format: Position + UV0 + Color.
-                    DefaultVertexFormat.POSITION_TEX_COLOR);
-            TintedGlint.setShader(shader);
-            event.registerShader(shader, TintedGlint::setShader);
-        } catch (IOException e) {
-            Pseudocore.LOGGER.warn("Could not load the tinted glint shader; "
-                    + "filled pseudocores will render without a glint", e);
-        }
-    }
-
-    /**
-     * Gives the tinted glint its own fixed render buffer (#67): a dedicated
-     * arena and a slot in the final {@code endBatch()} sweep, which is where
-     * vanilla's own glint types flush - after the item's geometry has written
-     * the depth their EQUAL_DEPTH_TEST needs. Without a slot here the type
-     * falls onto BufferSource's shared-buffer path, whose eager flush discards
-     * its (still empty) buffer on the next unrelated request, so the glint's
-     * quads are written into a builder nothing ever draws again. Fires on the
-     * client mod bus right after vanilla's buffers are seeded.
-     */
-    @SubscribeEvent
-    public static void onRegisterRenderBuffers(RegisterRenderBuffersEvent event) {
-        TintedGlint.registerRenderBuffer(event);
     }
 }

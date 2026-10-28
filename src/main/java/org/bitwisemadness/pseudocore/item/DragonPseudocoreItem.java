@@ -87,6 +87,18 @@ public class DragonPseudocoreItem extends DragonHornItem {
     }
 
     /**
+     * A filled dragon core takes the vanilla enchantment-glint path, matching
+     * the beast line's simplification (#86): the stored dragon is read through
+     * {@link IafHornAccess} - the mod's one IaF importer - and from there it is
+     * vanilla's foil check and vanilla's glint pipeline all the way down. An
+     * empty horn reads null and stays matte.
+     */
+    @Override
+    public boolean isFoil(ItemStack stack) {
+        return IafHornAccess.read(stack) != null || super.isFoil(stack);
+    }
+
+    /**
      * Refuse with an actionbar explanation, mirroring the beast line's wording
      * path. PASS keeps the dragon's own interaction working, so a refused
      * capture still lets the dragon be ridden or tamed as if the item were not
