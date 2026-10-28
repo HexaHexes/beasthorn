@@ -26,6 +26,8 @@
   "pseudocore.tooltip.ep_cap_dragon": "Captures Dragons up to %s EP",
   "pseudocore.tooltip.no_ep_restriction": "Has no EP restrictions",
   "pseudocore.tooltip.stage_cap": "Captures Dragons up to Stage %s",
+  "pack.pseudocore.metallic.name": "Pseudocore: Metallic Bodies",
+  "pack.pseudocore.metallic.description": "More metallic-looking Pseudocore body textures - harder highlights, deeper shadows.",
   "pseudocore.message.busy": "This creature cannot be captured right now.",
   "pseudocore.message.too_powerful": "The %s is too powerful to be captured by this pseudocore."
 }
