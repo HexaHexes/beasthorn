@@ -1,5 +1,6 @@
 package org.bitwisemadness.pseudocore.client;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.renderer.RenderStateShard;
@@ -9,6 +10,7 @@ import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.client.event.RegisterRenderBuffersEvent;
 import org.bitwisemadness.pseudocore.Pseudocore;
 import org.bitwisemadness.pseudocore.registry.ModDataComponents;
 import org.bitwisemadness.pseudocore.util.IafHornAccess;
@@ -34,9 +36,12 @@ import org.bitwisemadness.pseudocore.util.IafHornAccess;
  *
  * <p>Failure is always cosmetic. The shader registers through
  * {@code RegisterShadersEvent} (resource reloads manage its lifecycle like
- * vanilla's own shaders); if it is ever unavailable, {@link #arm} refuses to
- * switch the glint on and the item simply renders without one - a missing
- * shimmer, never a broken render.</p>
+ * vanilla's own shaders), and the RenderType claims a fixed render buffer
+ * through {@code RegisterRenderBuffersEvent} - without that slot its geometry
+ * would be dropped by BufferSource's shared path, which is the silent no-glint
+ * failure #67 root-caused. If either registration is unavailable,
+ * {@link #arm} refuses to switch the glint on and the item simply renders
+ * without one - a missing shimmer, never a broken render.</p>
  */
 public final class TintedGlint {
 
@@ -46,11 +51,29 @@ public final class TintedGlint {
     /** Set by the shader registration; null until then, or after a failed load. */
     private static ShaderInstance shader;
 
-    /** Lazily built once the shader is known; null when glint is unavailable. */
+    /**
+     * Built exactly once and never rebuilt. The ShaderStateShard holds a lazy
+     * supplier ({@code () -> shader}), so the instance outlives shader reloads
+     * on its own - and it has to: NeoForge's fixed-buffer map is keyed by this
+     * very instance, so a rebuild would desync the registered key from the type
+     * the foil pick returns, and the glint would vanish into the shared-buffer
+     * path again (#67).
+     */
     private static RenderType type;
 
     /** Set when the RenderType build failed, so we do not retry every frame. */
     private static boolean typeFailed;
+
+    /**
+     * True once this instance is registered as a fixed render buffer through
+     * {@code RegisterRenderBuffersEvent}. Until then it must not be handed to a
+     * buffer pick: an unregistered RenderType lands on BufferSource's shared
+     * {@code lastSharedType} path, which flushes it eagerly - while still empty -
+     * so its geometry is dropped before a single quad is written, silently and
+     * without error (#67). Registered types flush in the fixed sweep, after the
+     * item's depth exists for the EQUAL_DEPTH_TEST the glint recipe needs.
+     */
+    private static boolean registeredFixedBuffer;
 
     /**
      * Armed by the mixin right before vanilla picks a foil buffer, consumed
@@ -80,11 +103,11 @@ public final class TintedGlint {
 
     /** Called by the shader registration event, including on shader reload. */
     public static void setShader(ShaderInstance instance) {
+        // The RenderType is deliberately NOT dropped here: it must stay the
+        // exact instance registered in the fixed-buffer map (#67), and its
+        // ShaderStateShard supplier already resolves the live field per draw,
+        // so a reload reaches it without a rebuild.
         shader = instance;
-        // A reload hands us a fresh program; drop the RenderType bound to the old
-        // supplier state so the next frame rebuilds against the live shader.
-        type = null;
-        typeFailed = false;
         if (!loggedShaderRegistration) {
             loggedShaderRegistration = true;
             Pseudocore.LOGGER.info("Glint debug: tinted glint shader registered ({})",
@@ -93,12 +116,43 @@ public final class TintedGlint {
     }
 
     /**
+     * Registers the tinted glint as a dedicated fixed render buffer, giving it
+     * its own arena in {@code BufferSource} and a place in the final
+     * {@code endBatch()} sweep - the flush position vanilla's own glint types
+     * enjoy, after the item geometry has written the depth the glint recipe's
+     * EQUAL_DEPTH_TEST compares against. Without this the type falls onto the
+     * shared-buffer path, whose eager flush drops its geometry before any quad
+     * is written: no draw, no GL error, no log line - just no glint (#67).
+     *
+     * <p>Called from {@code RegisterRenderBuffersEvent} (client mod bus), which
+     * fires after vanilla's own buffers are seeded. The supplier-based shader
+     * state means the type can be built here, before the shader itself
+     * registers during the first resource reload.</p>
+     */
+    public static void registerRenderBuffer(RegisterRenderBuffersEvent event) {
+        RenderType built = type();
+        if (built == null) {
+            Pseudocore.LOGGER.warn("Could not build the tinted glint RenderType; "
+                    + "filled pseudocores will render without a glint");
+            return;
+        }
+        try {
+            event.registerRenderBuffer(built);
+            registeredFixedBuffer = true;
+            Pseudocore.LOGGER.info("Glint debug: tinted glint registered as a fixed render buffer");
+        } catch (RuntimeException e) {
+            Pseudocore.LOGGER.warn("Could not register the tinted glint render buffer; "
+                    + "filled pseudocores will render without a glint", e);
+        }
+    }
+
+    /**
      * Whether the tinted glint can be shown at all. False before shader
-     * registration and after any load failure, in which case items fall back
-     * to no glint rather than vanilla's violet one.
+     * registration and before the fixed-buffer registration, in which case
+     * items fall back to no glint rather than vanilla's violet one.
      */
     public static boolean available() {
-        return shader != null && type() != null;
+        return shader != null && registeredFixedBuffer && type() != null;
     }
 
     /**
@@ -111,14 +165,14 @@ public final class TintedGlint {
     public static boolean arm(ItemStack stack) {
         boolean filled = isFilledPseudocore(stack);
         boolean hasShader = shader != null;
-        boolean hasType = type() != null;
+        boolean hasType = type() != null && registeredFixedBuffer;
         pending = hasShader && hasType && filled;
         // #67 diagnostics: only pseudocore items are interesting, and only the
         // first few renders, so a session writes a handful of lines and no more.
         if (isPseudocoreItem(stack) && diagnosticsRemaining > 0) {
             diagnosticsRemaining--;
             Pseudocore.LOGGER.info(
-                    "Glint debug: arm (pseudocore) filled={} shader={} type={} -> pending={} [{}]",
+                    "Glint debug: arm (pseudocore) filled={} shader={} registered={} -> pending={} [{}]",
                     filled, hasShader, hasType, pending,
                     BuiltInRegistries.ITEM.getKey(stack.getItem()));
         }
@@ -133,9 +187,19 @@ public final class TintedGlint {
         pending = false;
         if (!loggedTintedPick) {
             loggedTintedPick = true;
-            Pseudocore.LOGGER.info("Glint debug: tinted glint RenderType handed to the buffer pick");
+            // #67 probe: what the GL/render state actually is at the moment the
+            // tinted type is handed over - pending GL errors (a non-zero code
+            // means an earlier call already failed), the global shader colour
+            // (a black value would make the SRC_COLOR glint blend add nothing),
+            // and the glint alpha the program's fade multiplies by.
+            float[] colour = RenderSystem.getShaderColor();
+            Pseudocore.LOGGER.info(
+                    "Glint debug: tinted pick; glError={} shaderColor={},{},{} glintAlpha={}",
+                    org.lwjgl.opengl.GL11.glGetError(),
+                    colour[0], colour[1], colour[2],
+                    RenderSystem.getShaderGlintAlpha());
         }
-        RenderType tinted = type();
+        RenderType tinted = registeredFixedBuffer ? type() : null;
         return tinted != null ? tinted : vanilla;
     }
 
@@ -173,12 +237,13 @@ public final class TintedGlint {
 
     /**
      * The tinted glint RenderType: vanilla's GLINT recipe with a shader that
-     * reads Color. Built on first use (the shader only exists after client
-     * setup) and cached; any failure is remembered so a broken build degrades
-     * to "no glint" instead of attempting and throwing every frame.
+     * reads Color. Built once, early (its shader state is a lazy supplier, so
+     * no shader is needed yet) and cached forever - the fixed-buffer map holds
+     * this exact instance (#67). Any failure is remembered so a broken build
+     * degrades to "no glint" instead of attempting and throwing every frame.
      */
     private static RenderType type() {
-        if (type == null && !typeFailed && shader != null) {
+        if (type == null && !typeFailed) {
             try {
                 type = RenderType.create(
                         "pseudocore_tinted_glint",
