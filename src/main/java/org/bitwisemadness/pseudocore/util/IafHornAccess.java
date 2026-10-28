@@ -1,14 +1,17 @@
 package org.bitwisemadness.pseudocore.util;
 
+import com.iafenvoy.iceandfire.config.IafCommonConfig;
 import com.iafenvoy.iceandfire.item.component.DragonHornComponent;
 import net.minecraft.core.component.TypedDataComponent;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.fml.ModList;
 
 /**
  * Reads Ice and Fire's Dragon Horn storage.
  *
- * <p>Never reference IaF types outside this class — the mixin is the only
- * caller, and it is skipped entirely when IaF is absent.</p>
+ * <p>Never reference IaF types outside this class — every path in starts at
+ * the mixin, either directly or through the dragon tooltip block that only the
+ * mixin invokes, and none of them loads without IaF.</p>
  *
  * <p>Works by scanning the stack's components for a {@link DragonHornComponent}
  * value rather than looking IaF's {@code DRAGON_HORN} field up by name. The
@@ -47,5 +50,27 @@ public final class IafHornAccess {
             }
         }
         return null;
+    }
+
+    /** The growth addon whose stretch formula {@link DragonStages} mirrors. */
+    private static final String GROWTH_ADDON_MOD_ID = "tensura_iaf_growth";
+
+    /**
+     * The stage Ice and Fire would report for a stored dragon's frozen age.
+     *
+     * <p>The configured {@code maxTamedDragonAge} is read live - a client
+     * reads its own copy of IaF's common config, the same contract every
+     * common-config consumer in this pack accepts - and the growth addon is
+     * detected by mod id. Both formulas and their evidence live in
+     * {@link DragonStages}; this method only gathers the two inputs.</p>
+     *
+     * <p>Both entry points run under the mixin, which never loads without Ice
+     * and Fire, so the config read below cannot be reached in a world where
+     * {@code IafCommonConfig} is absent.</p>
+     */
+    public static int stageForAgeTicks(int ageTicks) {
+        return DragonStages.stageFor(ageTicks / 24000,
+                IafCommonConfig.INSTANCE.dragon.maxTamedDragonAge.getValue(),
+                ModList.get().isLoaded(GROWTH_ADDON_MOD_ID));
     }
 }

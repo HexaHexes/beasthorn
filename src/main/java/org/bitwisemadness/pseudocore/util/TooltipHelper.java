@@ -95,10 +95,14 @@ public final class TooltipHelper {
      * shows them after the shared block.
      *
      * <p>The wording is IaF's — these are its own lang keys — and the stage
-     * thresholds are IaF's own AgeTicks bands, verified against CE 2.0-beta.15.
-     * Reproducing them rather than letting IaF's {@code appendHoverText} run is
-     * what makes the ordering above possible; it costs us coupling to those two
-     * NBT keys and the AgeTicks maths.</p>
+     * comes from {@link IafHornAccess#stageForAgeTicks} rather than a copied
+     * set of thresholds: the live formula reads the configured growth cap and
+     * the growth addon's stretched bands, so a raised cap cannot make this
+     * line disagree with the living dragon (or with Jade) again the way the
+     * stock 25-day bands did (#48). Reproducing these lines rather than
+     * letting IaF's {@code appendHoverText} run is what makes the ordering
+     * above possible; it costs us coupling to the Gender and AgeTicks NBT
+     * keys.</p>
      */
     public static void addDragonLines(List<Component> tooltip, CompoundTag data) {
         if (data == null || data.isEmpty()) return;
@@ -111,12 +115,16 @@ public final class TooltipHelper {
         tooltip.add(Component.literal(genderLabel + " " + genderValue)
                 .withStyle(ChatFormatting.GRAY));
 
-        // Stage and age in days, both derived from AgeTicks as IaF does. The
-        // spaces around the day count are ours: IaF concatenates these tokens
-        // jammed together, which renders "Stage 3( 50 Days)".
+        // Stage - Ice and Fire's own answer for a dragon of this age, through
+        // the bridge (#48): the copied stock bands read stage 4 for the
+        // reported 98-day dragon where a 512-day growth cap reads stage 1.
+        // Days stay raw, as IaF displays them. The spaces around both counts
+        // are ours: IaF concatenates these tokens jammed together, which
+        // renders "Stage 3( 50 Days)".
         int days = data.getInt("AgeTicks") / 24000;
+        int stage = IafHornAccess.stageForAgeTicks(data.getInt("AgeTicks"));
         tooltip.add(Component.translatable("dragon.stage")
-                .append(Component.literal(" " + dragonStageFor(days) + " "))
+                .append(Component.literal(" " + stage + " "))
                 .append(Component.translatable("dragon.days.front"))
                 .append(Component.literal(days + " "))
                 .append(Component.translatable("dragon.days.back"))
@@ -187,15 +195,6 @@ public final class TooltipHelper {
         } catch (IllegalStateException configNotLoadedYet) {
             // Fine: no caps shown until the client can see them.
         }
-    }
-
-    /** IaF's AgeTicks bands: 25, 50, 75 and 100 days old. */
-    private static int dragonStageFor(int days) {
-        if (days >= 100) return 5;
-        if (days >= 75) return 4;
-        if (days >= 50) return 3;
-        if (days >= 25) return 2;
-        return 1;
     }
 
     /** A grey label, ready for a value to be appended. */
