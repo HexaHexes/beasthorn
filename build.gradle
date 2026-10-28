@@ -149,11 +149,14 @@ dependencies {
 
     // Ice and Fire CE 2.1.4 hard-requires these two and refuses to load without them,
     // so every dev run - gameTestServer included - carries them exactly as the pack
-    // does. Jupiter is purely so IaF can start. Uranus also sits on the compile
-    // classpath: DragonBaseEntity's hierarchy implements Uranus interfaces, so
-    // referencing a dragon's growth stage - which the dragon line does - cannot be
-    // compiled without those types resolvable. compileOnly, so nothing ships.
+    // does. Uranus sits on the compile classpath: DragonBaseEntity's hierarchy
+    // implements Uranus interfaces, so referencing a dragon's growth stage - which
+    // the dragon line does - cannot be compiled without those types resolvable.
+    // Jupiter now does too: reading maxTamedDragonAge for the stage bridge (#48)
+    // dereferences its IntegerEntry, which javac needs to see even though the call
+    // is just getValue(). compileOnly on both, so nothing ships.
     localRuntime 'curse.maven:jupiter-1072905:7738312' // jupiter-2.3.7
+    compileOnly 'curse.maven:jupiter-1072905:7738312' // jupiter-2.3.7
     localRuntime 'curse.maven:uranus-1010827:8587525' // uranus-2.4.1-bugfix
     compileOnly 'curse.maven:uranus-1010827:8587525' // uranus-2.4.1-bugfix
 
