@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "B": {
+      "item": "iceandfire:dragonbone"
+    },
+    "I": {
+      "item": "minecraft:stick"
+    }
+  },
+  "pattern": [
+    "  B",
+    " BB",
+    "IB "
+  ],
+  "result": {
+    "id": "iceandfire:dragon_horn",
+    "count": 1
+  },
+  "show_notification": true,
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:not",
+      "value": {
+        "type": "pseudocore:iceandfire_active"
+      }
+    }
+  ]
+}

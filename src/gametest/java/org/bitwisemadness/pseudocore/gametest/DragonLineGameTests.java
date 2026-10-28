@@ -21,11 +21,14 @@ import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.neoforged.fml.ModList;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.bitwisemadness.pseudocore.Pseudocore;
 import org.bitwisemadness.pseudocore.config.PseudocoreConfig;
 import org.bitwisemadness.pseudocore.item.DragonPseudocoreItem;
+import org.bitwisemadness.pseudocore.registry.ModDataComponents;
 import org.bitwisemadness.pseudocore.registry.ModItems;
 import org.bitwisemadness.pseudocore.util.IafHornAccess;
 
@@ -160,6 +163,72 @@ public final class DragonLineGameTests {
                 "the copper tier (stage cap 1) must refuse a stage-" + stage + " dragon, got " + refused);
         check(IafHornAccess.read(copperStack) == null,
                 "a refused capture must not store the dragon");
+
+        helper.succeed();
+    }
+
+    /**
+     * The click layer (#37): capture is driven from
+     * {@code PlayerInteractEvent.EntityInteract}, because vanilla asks
+     * {@code entity.interact()} first and a tamed dragon - the most rideable mob
+     * in the pack - swallowed every dragon pseudocore click before the tier
+     * gates could run. This drives the real event through the real bus.
+     *
+     * <p>Control first: the beast line's wiring - the pattern the dragon line
+     * borrows - must capture an unowned cow and come back cancelled with the mob
+     * stored. Then the dragon line: a mock holder can never satisfy IaF's
+     * own-the-dragon guard (the stage test documents why), so the assertable
+     * contract is what IaF's own bytecode dictates - every decline it makes
+     * returns CONSUME (the client prediction, the non-dragon target and the
+     * not-your-dragon case all share that path). The capped tier's refusal is
+     * OURS: a PASS that leaves the event uncanceled so the dragon keeps its
+     * vanilla click. The uncapped tier's hand-off is IaF's: the event comes
+     * back cancelled with CONSUME and nothing stored - the wiring ran our
+     * gates, reached IaF's guard, and was declined silently, which is what
+     * holding a horn-shaped item does to a dragon you do not own.</p>
+     */
+    @GameTest(template = "test_area")
+    public static void captureClicksReachTheItemThroughTheEvent(GameTestHelper helper) {
+        if (!ModItems.dragonTiersAvailable()) {
+            helper.succeed();
+            return;
+        }
+        var player = helper.makeMockPlayer(GameType.SURVIVAL);
+
+        var cow = helper.spawn(net.minecraft.world.entity.EntityType.COW, 1, 1, 1);
+        player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(ModItems.IRON_PSEUDOCORE.get()));
+        var beastEvent = new PlayerInteractEvent.EntityInteract(player, InteractionHand.MAIN_HAND, cow);
+        NeoForge.EVENT_BUS.post(beastEvent);
+        check(beastEvent.isCanceled(),
+                "control failed: the beast line's click must capture the cow and cancel the event");
+        check(beastEvent.getCancellationResult() == InteractionResult.SUCCESS,
+                "control failed: the cancelled click must report SUCCESS, got "
+                        + beastEvent.getCancellationResult());
+        check(player.getMainHandItem().has(ModDataComponents.CONTAINED_MOB.get()),
+                "control failed: the capture must have stored the cow");
+
+        @SuppressWarnings("unchecked")
+        var fireDragon = (net.minecraft.world.entity.EntityType<DragonBaseEntity>) BuiltInRegistries.ENTITY_TYPE
+                .get(ResourceLocation.fromNamespaceAndPath("iceandfire", "fire_dragon"));
+        DragonBaseEntity dragon = helper.spawn(fireDragon, 1, 1, 1);
+        dragon.setAgeInDays(75);
+
+        player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(ModItems.DRAGON_TIERS.get(0).get()));
+        var cappedEvent = new PlayerInteractEvent.EntityInteract(player, InteractionHand.MAIN_HAND, dragon);
+        NeoForge.EVENT_BUS.post(cappedEvent);
+        check(!cappedEvent.isCanceled(),
+                "a stage-capped refusal must pass the click back so the dragon stays ridable");
+
+        player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(ModItems.DRAGON_TIERS.get(4).get()));
+        var uncappedEvent = new PlayerInteractEvent.EntityInteract(player, InteractionHand.MAIN_HAND, dragon);
+        NeoForge.EVENT_BUS.post(uncappedEvent);
+        check(uncappedEvent.isCanceled()
+                        && uncappedEvent.getCancellationResult() == InteractionResult.CONSUME,
+                "the uncapped tier must hand off to IaF's capture path, whose every decline returns"
+                        + " CONSUME - got canceled=" + uncappedEvent.isCanceled()
+                        + " result=" + uncappedEvent.getCancellationResult());
+        check(IafHornAccess.read(player.getMainHandItem()) == null,
+                "a capture stopped by IaF's guard must not store the dragon");
 
         helper.succeed();
     }
