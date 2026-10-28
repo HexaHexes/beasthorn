@@ -1,12 +1,16 @@
 package org.bitwisemadness.pseudocore.gametest;
 
+import com.iafenvoy.iceandfire.config.IafCommonConfig;
 import com.iafenvoy.iceandfire.entity.DragonBaseEntity;
+import com.iafenvoy.jupiter.config.entry.IntegerEntry;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
@@ -31,8 +35,12 @@ import org.bitwisemadness.pseudocore.item.DragonPseudocoreItem;
 import org.bitwisemadness.pseudocore.registry.ModDataComponents;
 import org.bitwisemadness.pseudocore.registry.ModItems;
 import org.bitwisemadness.pseudocore.util.IafHornAccess;
+import org.bitwisemadness.pseudocore.util.TooltipHelper;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * The dragon line: five tiers of Ice and Fire horn, one recipe state at a time,
@@ -40,8 +48,8 @@ import java.util.List;
  * refuses a grown dragon.
  *
  * <p>The stage test grows a fire dragon to 75 days - stage 4 by IaF's own
- * {@code getAgeInDays() / 25 + 1} - and requires the copper tier (cap 1) to
- * refuse it while storing nothing. The <b>capture</b> side (the netherite tier
+ * banding, 75 days being where stage 4 starts - and requires the copper tier
+ * (cap 1) to refuse it while storing nothing. The <b>capture</b> side (the netherite tier
  * accepting the same dragon) cannot be driven from a game test at all: vanilla's
  * {@code isOwnedBy} compares the holder against the owner <i>resolved from the
  * level's player list</i>, and the harness's mock player can never appear there
@@ -60,6 +68,7 @@ public final class DragonLineGameTests {
     private static final List<String> DRAGON_METALS =
             List.of("copper", "iron", "silver", "gold", "netherite");
     private static final int[] STAGE_LADDER = {1, 2, 3, 4, 5};
+    private static final Pattern DIGITS = Pattern.compile("\\d+");
 
     private DragonLineGameTests() {
     }
@@ -231,6 +240,69 @@ public final class DragonLineGameTests {
                 "a capture stopped by IaF's guard must not store the dragon");
 
         helper.succeed();
+    }
+
+    /**
+     * The tooltip's stage line is the living dragon's stage (#48): it must
+     * equal {@code getDragonStage()} for every growth cap this environment can
+     * configure, never a copy of the stock 25-day bands. Three worlds run
+     * over one tamed 98-day dragon - the untouched default, a lowered cap
+     * (the clamp path: both sides must stop at day 64), and a raised cap with
+     * tensura-iaf-growth absent, where Ice and Fire's config grows but its
+     * bands do not, so the tooltip must not stretch either.
+     *
+     * <p>The reported pack - cap 512 WITH the addon - is pinned numerically
+     * in {@code DragonStagesTest}, because no test environment loads the
+     * addon; the equality asserted here is the property that test's inputs
+     * feed. The config is restored in a finally block, so a failed leg cannot
+     * leak a moved cap into later tests.</p>
+     */
+    @GameTest(template = "test_area")
+    public static void tooltipStageMatchesTheLivingDragon(GameTestHelper helper) {
+        if (!ModItems.dragonTiersAvailable()) {
+            helper.succeed();
+            return;
+        }
+        var player = helper.makeMockPlayer(GameType.SURVIVAL);
+        @SuppressWarnings("unchecked")
+        var fireDragon = (net.minecraft.world.entity.EntityType<DragonBaseEntity>) BuiltInRegistries.ENTITY_TYPE
+                .get(ResourceLocation.fromNamespaceAndPath("iceandfire", "fire_dragon"));
+        DragonBaseEntity dragon = helper.spawn(fireDragon, 1, 1, 1);
+        dragon.tame(player);
+        dragon.setAgeInDays(98);
+        check(dragon.isTame(),
+                "the dragon must be tame so the tamed clamp path is the one under test");
+
+        IntegerEntry ageCap = IafCommonConfig.INSTANCE.dragon.maxTamedDragonAge;
+        int original = ageCap.getValue();
+        try {
+            for (int cap : new int[] { original, 64, 512 }) {
+                ageCap.setValue(cap);
+
+                CompoundTag data = new CompoundTag();
+                data.putInt("AgeTicks", 98 * 24000);
+                List<Component> tooltip = new ArrayList<>();
+                TooltipHelper.addDragonLines(tooltip, data);
+
+                int shown = parseStageLine(tooltip);
+                int live = dragon.getDragonStage();
+                check(shown == live, "growth cap " + cap + ": the tooltip must render stage " + live
+                        + " (what the living dragon reports), got " + shown);
+            }
+        } finally {
+            ageCap.setValue(original);
+        }
+
+        helper.succeed();
+    }
+
+    /** The stage line is addDragonLines' second line; its first number is the stage. */
+    private static int parseStageLine(List<Component> tooltip) {
+        check(tooltip.size() >= 2,
+                "the dragon block must render a gender line and a stage line, got " + tooltip.size());
+        Matcher matcher = DIGITS.matcher(tooltip.get(1).getString());
+        check(matcher.find(), "the stage line must carry a stage number: " + tooltip.get(1).getString());
+        return Integer.parseInt(matcher.group());
     }
 
     private static ResourceLocation recipeId(String metal, String suffix) {
