@@ -128,6 +128,23 @@ public final class PseudocoreConfig {
     }
 
     /**
+     * True when Dragon Pseudocores tint by the dragon's <b>variant</b> rather
+     * than its element (#51).
+     *
+     * <p>Read through the same fail-open lens as the integration switches: an
+     * unreadable or not-yet-loaded config behaves as the shipped default
+     * ({@code element}), and any value the config validator would have
+     * rejected (an older file, a hand edit) also reads as {@code element}.</p>
+     */
+    public static boolean dragonTintVariantMode() {
+        try {
+            return INTEGRATIONS.dragonTintMode.get().equalsIgnoreCase("variant");
+        } catch (RuntimeException configNotLoadedOrInvalid) {
+            return false;
+        }
+    }
+
+    /**
      * The capture limits of the tier an item belongs to - the iron pseudocore's,
      * say. Items that are not tiers get the permissive no-op limits, so an
      * unknown item never accidentally limits anything.
@@ -182,6 +199,7 @@ public final class PseudocoreConfig {
     public static final class Integrations {
         public final ModConfigSpec.BooleanValue tensuraEnabled;
         public final ModConfigSpec.BooleanValue iceAndFireEnabled;
+        public final ModConfigSpec.ConfigValue<String> dragonTintMode;
 
         public Integrations(ModConfigSpec.Builder builder) {
             builder.push("pseudocore");
@@ -204,6 +222,24 @@ public final class PseudocoreConfig {
                             "no longer transfers ownership, and none of the IaF-conditional",
                             "recipes exist.")
                     .define("iceAndFireIntegration", true);
+            dragonTintMode = builder
+                    .comment(
+                            "How a Dragon Pseudocore's orbs are tinted by the dragon it holds.",
+                            "",
+                            "'element' (default): fire, ice and lightning dragons each tint",
+                            "alike, one colour per element.",
+                            "'variant': all twelve of Ice and Fire's dragon colours tint",
+                            "distinctly; a colour this mod does not know (datapack-added, say)",
+                            "falls back to its element's colour.",
+                            "",
+                            "Matching is case-insensitive; any other value behaves as 'element'.",
+                            "This reads client-side only, and is deliberately NOT gated by the",
+                            "Ice and Fire integration switch: the colour is derived from data",
+                            "the mod already displays without IaF (the Race line reads dragon",
+                            "variants through pure NBT), so it tints the same either way.")
+                    .define("dragonTintMode", "element",
+                            value -> value instanceof String s
+                                    && (s.equalsIgnoreCase("element") || s.equalsIgnoreCase("variant")));
             builder.pop();
         }
     }

@@ -6,8 +6,10 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
+import org.bitwisemadness.pseudocore.config.PseudocoreConfig;
 import org.bitwisemadness.pseudocore.item.component.ContainedMobComponent;
 import org.bitwisemadness.pseudocore.registry.ModDataComponents;
+import org.bitwisemadness.pseudocore.util.DragonTints;
 import org.bitwisemadness.pseudocore.util.VariantHelper;
 
 import java.util.Map;
@@ -24,8 +26,10 @@ import java.util.Map;
  * untouched.</p>
  *
  * <p>The colour is the mob's spawn egg <b>primary</b> colour, resolved
- * client-side from the component's stored entity type. No extra NBT is stored,
- * so the tint can never drift out of sync with the mob inside.</p>
+ * client-side from the component's stored entity type. Dragons are the
+ * exception (#51): their orbs tint by element, or by the dragon's own colour
+ * when {@code dragonTintMode} says so - see {@link DragonTints}. No extra NBT
+ * is stored, so the tint can never drift out of sync with the mob inside.</p>
  */
 public final class PseudocoreTintHandler {
 
@@ -95,15 +99,28 @@ public final class PseudocoreTintHandler {
             Map.entry("direwolf:black fang", 0xFF1D1D21));
 
     /**
-     * The orb colour of a stored mob, resolved in order: a curated colour when
-     * the mob's variant is one whose name is literally a colour; otherwise a
-     * stable colour derived from the variant name itself, so two variants of one
+     * The orb colour of a stored mob, resolved in order: dragons first (#51 -
+     * tinted by element or curated variant colour, per {@code dragonTintMode},
+     * never by the generic hash below); then a curated colour when the mob's
+     * variant is one whose name is literally a colour; otherwise a stable
+     * colour derived from the variant name itself, so two variants of one
      * species read differently while staying deterministic across sessions and
      * clients; and for mobs with no readable variant, the species' spawn-egg
      * primary, with the stable id-derived colour as the last resort.
      */
     private static int orbColor(ContainedMobComponent comp) {
         ResourceLocation type = comp.entityType();
+
+        // Dragons: the stored NBT always carries Variant (#51's evidence), but
+        // the raw string-typed read (not VariantHelper#variantOf, which
+        // localizes) is what maps onto IaF's DragonColor names. A missing or
+        // non-string Variant simply falls through to the element colour.
+        String dragonElement = DragonTints.elementOf(type.getPath());
+        if (dragonElement != null) {
+            return DragonTints.color(dragonElement,
+                    VariantHelper.stringVariant(comp.entityData()),
+                    PseudocoreConfig.dragonTintVariantMode());
+        }
 
         VariantHelper.Variant variant = VariantHelper.variantOf(type, comp.entityData());
         if (variant != null) {
