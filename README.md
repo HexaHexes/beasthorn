@@ -5,9 +5,12 @@ all of its data, holds it safely, and lets you carry it, sell it, or trade it to
 another player. The mob inside keeps everything: its name, its health, its inventory,
 its owner, and any modded data stored on it.
 
+The line comes in **twelve tiers**, each with a higher capture limit than the last,
+plus a separate **five-tier dragon line** for Ice and Fire's dragons.
+
 ## Inspiration
 
-This mod is directly inspired by two mods:
+This mod draws on three sources:
 
 - **Ice and Fire CE** - Ice and Fire's Dragon Horn is the model for the whole concept:
   a vessel item that captures a mob with all of its data, shows it in a labelled
@@ -21,8 +24,8 @@ This mod is directly inspired by two mods:
 - **The Pseudocores of the Tensura anime and manga** - the item's design follows
   theirs, and they are where the mod's name comes from.
 
-Both are optional at runtime: Pseudocore runs standalone and only layers their
-content in when the corresponding mod is present.
+The two mods are optional at runtime: Pseudocore runs standalone and only layers
+their content in when the corresponding mod is present.
 
 ## What a pseudocore does
 
@@ -55,7 +58,8 @@ A filled pseudocore always shows its contents, in this order:
 
 Variants read naturally -- *Red Fang Direwolf*, *Emerald Fire Dragon*,
 *Black Hippogryph* -- covering Ice and Fire, Tensura, Mobs of Mythology and Mysticism.
-An empty pseudocore shows a hint instead.
+An empty pseudocore shows a hint instead, together with the capture caps its tier
+enforces (see the tier tables below).
 
 ## Appearance
 
@@ -66,15 +70,64 @@ that mob's spawn-egg color -- vivid, and only the orbs. Mob types with no spawn
 egg get a stable color derived from their id. Each tier's body also carries its
 metal's colour -- the iron tier's texture as drawn, the rest tinted from it.
 
-## Ice and Fire dragons stay on Ice and Fire's horn
+## The tier line
 
-Pseudocore **does not** capture Ice and Fire's dragons -- they keep using IaF's own
-Dragon Horn. The item is blacklisted by default against the three IaF dragons, 62
-bosses, eight Tensura and Mysticism encounter mobs (Tensura's orc ranks, goblin,
-lizardman and three daemon ranks, plus Mysticism's okami) and villagers/colonists --
-79 ids in all -- so it can't be used to pocket an encounter. A capture attempt on a
-blacklisted mob simply refuses, naming the mob. The full list is editable in
-`config/pseudocore-server.toml`.
+Every beast-tier pseudocore captures the same way; what separates the tiers is
+**how much EP** the mob inside may have. EP is read from Tensura, so the caps only
+matter while Tensura is installed and the integration is on.
+
+| Tier | Max EP | Tier | Max EP |
+|---|---|---|---|
+| Copper | 1,000 | Low Magisteel | 100,000 |
+| Iron | 5,000 | High Magisteel | 150,000 |
+| Silver | 10,000 | Pure Magisteel | 200,000 |
+| Gold | 25,000 | Mithril | 300,000 |
+| Netherite | 75,000 | Orichalcum | 500,000 |
+| | | Adamantite | 1,000,000 |
+| | | Hihi'irokane | uncapped |
+
+Every cap is configurable per tier in `config/pseudocore-server.toml`
+(`[pseudocore.tiers.<tier>]`), including whether the tier may capture tamed or
+Tensura-named mobs. A tier that refuses a capture says so, naming the mob.
+
+Each tier has **two recipes**, shaped around the tier's ingots (tags like
+`c:ingots/copper`, so any mod's metal works): one uses the Tensura magic crystal of
+the matching quality and exists only while Tensura's integration is active; the
+other uses any gem from `c:gems` and exists only while that integration is off. One
+of the two is always craftable, whichever way the pack is built.
+
+## Ice and Fire's dragons: the dragon line
+
+Pseudocore **does** capture Ice and Fire's dragons -- but never with a beast
+pseudocore. They are blacklisted there, alongside 62 bosses, eight Tensura and
+Mysticism encounter mobs and villagers/colonists (79 ids in all, editable in
+`config/pseudocore-server.toml`), so a beast core can't be used to pocket an
+encounter. The capture attempt simply refuses, naming the mob.
+
+Dragons are captured with the **dragon pseudocores**, a five-tier line of their own
+that speaks IaF's own capture language: the same ownership guard (you capture a
+dragon **you own**, never someone else's), and a second, **growth-stage** cap so a
+starter core can't pocket an ancient wyrm.
+
+| Tier | Max stage | Tier | Max stage |
+|---|---|---|---|
+| Copper Dragon | 1 | Gold Dragon | 4 |
+| Iron Dragon | 2 | Netherite Dragon | 5 |
+| Silver Dragon | 3 | | |
+
+Dragon tiers also take a per-tier EP cap and the same tamed/named switches, in
+`[pseudocore.dragonTiers.<tier>]` of the same file. Stage is derived from the
+dragon's age (one stage per 25 days). Release works like the beast line, at the
+dragon's original identity and ownership.
+
+Dragon pseudocore recipes are built from `c:bones/dragon`, the tier's ingots and a
+magic crystal (or a gem, as above) -- and only exist while Ice and Fire is
+installed; the dragon line is the one part of the mod that needs a mod to be
+craftable at all. Ice and Fire's own **Dragon Horn recipe is disabled** by the
+bundled override data pack, and Ice and Fire's dragon-horn advancements are
+reworked to point at the dragon pseudocores instead. The horn item itself is
+untouched -- other datapacks can still enable or re-add it however they like.
+The dragon tiers sit in the mod's own creative tab.
 
 ## Optional ownership transfer (off by default)
 
@@ -83,7 +136,7 @@ Releasing a mob never changes who owns it, unless a server opts in:
 | Gamerule | Default | Effect |
 |---|---|---|
 | `pseudocoreOwnershipTransfer` | off | Releasing a mob from a Pseudocore makes the releasee its owner |
-| `pseudocoreDragonOwnershipTransfer` | off | Releasing a dragon from IaF's Dragon Horn makes the releasee its owner |
+| `pseudocoreDragonOwnershipTransfer` | off | Releasing a dragon from a dragon pseudocore (or IaF's Dragon Horn) makes the releasee its owner |
 
 ```
 /gamerule pseudocoreOwnershipTransfer true
@@ -97,8 +150,8 @@ in `config/pseudocore-common.toml`:
 
 | Setting | Default | Effect when off |
 |---|---|---|
-| `tensuraIntegration` | on | No EP line, no Tensura ownership read or transfer, no Tensura variant names, and none of the Tensura-gated recipes |
-| `iceAndFireIntegration` | on | The Dragon Horn keeps IaF's own tooltip and rarity, its release no longer transfers ownership, and none of the IaF-gated recipes exist |
+| `tensuraIntegration` | on | No EP line, no Tensura ownership read or transfer, no Tensura variant names, and the crystal recipes give way to the gem ones |
+| `iceAndFireIntegration` | on | The dragon pseudocores stop capturing, the Dragon Horn keeps IaF's own tooltip and rarity, its release no longer transfers ownership, and its recipe is no longer overridden (the dragon recipes are keyed to Ice and Fire being installed, so they remain) |
 
 The switch is honoured in code and in data packs alike, so it also works on a
 server whose modpack still has the mod installed. The entity blacklist lives in
@@ -114,7 +167,7 @@ Every tier also sits in its own **Pseudocore** creative tab.
 | | Mod | Why |
 |---|---|---|
 | **Required** | Minecraft 1.21.1 + NeoForge 21.1+ | Platform |
-| Optional | [Ice and Fire CE](https://www.curseforge.com/minecraft/mc-mods/iceandfire-ce) | Dragon Horn ownership hand-off, and Ice and Fire variant names |
+| Optional | [Ice and Fire CE](https://www.curseforge.com/minecraft/mc-mods/iceandfire-ce) | The dragon line and its capture rules, Dragon Horn ownership hand-off, and Ice and Fire variant names |
 | Optional | Tensura: Reincarnated | EP tooltip, Tensura ownership fields, Tensura variant names |
 | Optional | Mobs of Mythology | drake and sporeling variant names |
 | Optional | Mysticism | okami variant names |
