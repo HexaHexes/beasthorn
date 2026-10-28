@@ -116,9 +116,11 @@ starter core can't pocket an ancient wyrm.
 | Silver Dragon | 3 | | |
 
 Dragon tiers also take a per-tier EP cap and the same tamed/named switches, in
-`[pseudocore.dragonTiers.<tier>]` of the same file. Stage is derived from the
-dragon's age (one stage per 25 days). Release works like the beast line, at the
-dragon's original identity and ownership.
+`[pseudocore.dragonTiers.<tier>]` of the same file. Stage is derived the way Ice
+and Fire derives it for the living dragon - its own age bands over the pack's
+configured growth schedule, so a 512-day growth clock reads stage 1 where stock
+128-day growth reads stage 4. Release works like the beast line, at the dragon's
+original identity and ownership.
 
 Dragon pseudocore recipes are built from `c:bones/dragon`, the tier's ingots and a
 magic crystal (or a gem, as above) -- and only exist while Ice and Fire is
