@@ -331,6 +331,25 @@ public class PseudocoreItem extends Item {
     }
 
     // ------------------------------------------------------------------
+    // Glint (#67, simplified per pack direction - #86)
+    // ------------------------------------------------------------------
+
+    /**
+     * A filled core takes the vanilla enchantment-glint path, so the whole
+     * feature is this decision: vanilla's foil check, vanilla's glint
+     * RenderType, vanilla's shader, vanilla's buffer - the exact pipeline the
+     * pack has verified rendering enchanted items in every context. An empty
+     * core has no {@code CONTAINED_MOB} and stays matte; enchanted stacks
+     * keep vanilla's own answer through {@code super}. Because this reads the
+     * live component, cores captured before this override existed glint with
+     * no migration.
+     */
+    @Override
+    public boolean isFoil(ItemStack stack) {
+        return stack.has(ModDataComponents.CONTAINED_MOB.get()) || super.isFoil(stack);
+    }
+
+    // ------------------------------------------------------------------
     // Tooltip
     // ------------------------------------------------------------------
 
