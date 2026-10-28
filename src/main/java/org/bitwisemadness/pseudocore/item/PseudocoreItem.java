@@ -244,8 +244,7 @@ public class PseudocoreItem extends Item {
         }
 
         ItemStack stack = context.getItemInHand();
-        ContainedMobComponent comp = stack.get(ModDataComponents.CONTAINED_MOB.get());
-        if (comp == null) {
+        if (!stack.has(ModDataComponents.CONTAINED_MOB.get())) {
             return InteractionResult.PASS;
         }
 
@@ -253,15 +252,50 @@ public class PseudocoreItem extends Item {
             return InteractionResult.SUCCESS;
         }
 
+        // Stand on the top face of the block that was clicked, not its centre.
+        // getCenter() is half a block lower, which sank every released mob up to
+        // its waist into the ground. The yaw stays 0, as it always has here.
+        Vec3 pos = Vec3.atBottomCenterOf(context.getClickedPos()).add(0.0, 1.0, 0.0);
+        releaseContained(stack, serverLevel, pos, 0.0F, context.getPlayer());
+        return InteractionResult.SUCCESS;
+    }
+
+    /**
+     * Release this stack's stored mob at a position - the block-click release
+     * extracted verbatim so callers without a block context (the Curios addon's
+     * release keybind, #91) run the exact same sequence players already know:
+     * resolve the type, create the entity, restore its full NBT, restore the
+     * stored UUID so UUID-bound records still resolve, position it, and run the
+     * gamerule-gated ownership transfer before <i>and</i> after the spawn (see
+     * the transfer call for why twice). The stack's storage is stripped on a
+     * successful spawn and left untouched otherwise; neither caller consumes the
+     * stack - an emptied core stays in the hand or slot, ready to capture
+     * again.
+     *
+     * @param pos     where the mob appears - callers decide (block click passes
+     *                the clicked top face + 1; the addon will pass the player)
+     * @param yRot    facing for the released mob; the block path has always
+     *                used 0 here
+     * @param releaser who released it, or null (dispenser-style) - ownership
+     *                transfer only happens for a real player under the gamerule
+     * @return true when a mob was released and the storage was stripped
+     */
+    public static boolean releaseContained(ItemStack stack, ServerLevel level,
+                                           Vec3 pos, float yRot, Player releaser) {
+        ContainedMobComponent comp = stack.get(ModDataComponents.CONTAINED_MOB.get());
+        if (comp == null) {
+            return false;
+        }
+
         EntityType<?> type = BuiltInRegistries.ENTITY_TYPE
                 .getOptional(comp.entityType()).orElse(null);
         if (type == null) {
-            return InteractionResult.PASS;
+            return false;
         }
 
-        Entity entity = type.create(serverLevel);
+        Entity entity = type.create(level);
         if (entity == null) {
-            return InteractionResult.PASS;
+            return false;
         }
 
         // Restore the mob's full state. Unlike IaF's Dragon Horn this is done
@@ -276,17 +310,12 @@ public class PseudocoreItem extends Item {
             entity.setUUID(stored);
         }
 
-        // Stand on the top face of the block that was clicked, not its centre.
-        // getCenter() is half a block lower, which sank every released mob up to
-        // its waist into the ground.
-        entity.moveTo(Vec3.atBottomCenterOf(context.getClickedPos()).add(0.0, 1.0, 0.0),
-                0.0F, 0.0F);
+        entity.moveTo(pos, yRot, 0.0F);
 
         // Ownership transfer - only if the server opted in AND the releaser is
         // not already the owner.
-        Player player = context.getPlayer();
-        boolean transfer = player != null
-                && ModGameRules.isPseudocoreTransferEnabled(serverLevel)
+        boolean transfer = releaser != null
+                && ModGameRules.isPseudocoreTransferEnabled(level)
                 && entity instanceof LivingEntity;
 
         // Set before addFreshEntity so the spawn packet already carries it, and
@@ -296,17 +325,17 @@ public class PseudocoreItem extends Item {
         // getControllingPassenger() (i.e. riding) work on the very tick the
         // mob appears rather than one tick later.
         if (transfer) {
-            transferOwnership((LivingEntity) entity, player);
+            transferOwnership((LivingEntity) entity, releaser);
         }
 
-        if (serverLevel.addFreshEntity(entity)) {
+        if (level.addFreshEntity(entity)) {
             stack.remove(ModDataComponents.CONTAINED_MOB.get());
             if (transfer) {
-                transferOwnership((LivingEntity) entity, player);
+                transferOwnership((LivingEntity) entity, releaser);
             }
+            return true;
         }
-
-        return InteractionResult.SUCCESS;
+        return false;
     }
 
     /**
@@ -318,7 +347,7 @@ public class PseudocoreItem extends Item {
      * refreshed by reassignOwner(), so vanilla is set after Tensura in case the
      * cache needs the UUID in place first.</p>
      */
-    private void transferOwnership(LivingEntity entity, Player player) {
+    private static void transferOwnership(LivingEntity entity, Player player) {
         UUID newOwner = player.getUUID();
 
         if (TensuraBridge.isLoaded()) {

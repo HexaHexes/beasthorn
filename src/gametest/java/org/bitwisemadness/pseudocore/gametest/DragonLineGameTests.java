@@ -2,8 +2,11 @@ package org.bitwisemadness.pseudocore.gametest;
 
 import com.iafenvoy.iceandfire.config.IafCommonConfig;
 import com.iafenvoy.iceandfire.entity.DragonBaseEntity;
+import com.iafenvoy.iceandfire.item.component.DragonHornComponent;
 import com.iafenvoy.jupiter.config.entry.IntegerEntry;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTest;
@@ -24,6 +27,8 @@ import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
@@ -39,6 +44,7 @@ import org.bitwisemadness.pseudocore.util.TooltipHelper;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -302,6 +308,61 @@ public final class DragonLineGameTests {
         } finally {
             ageCap.setValue(original);
         }
+
+        helper.succeed();
+    }
+
+    /**
+     * {@code releaseDragonAt} (#91, Curios addon Phase 1) is IaF's own
+     * {@code useOn} release replicated for callers with no block context. The
+     * horn component is written through the <b>registry id</b>
+     * {@code iceandfire:dragon_horn}, never through
+     * {@code IafDataComponents.DRAGON_HORN}: that field's static type differs
+     * across CE builds, which is why production code scans by value type
+     * instead. Asserts the three observable promises: the dragon appears at the
+     * requested position, with its stored UUID, and the storage is stripped
+     * while the stack survives.
+     */
+    @GameTest(template = "test_area")
+    public static void releaseDragonAtSpawnsAndStrips(GameTestHelper helper) {
+        if (!ModItems.dragonTiersAvailable()) {
+            helper.succeed();
+            return;
+        }
+
+        @SuppressWarnings("unchecked")
+        DataComponentType<DragonHornComponent> hornType =
+                (DataComponentType<DragonHornComponent>) BuiltInRegistries.DATA_COMPONENT_TYPE
+                        .getOptional(ResourceLocation.fromNamespaceAndPath("iceandfire", "dragon_horn"))
+                        .orElse(null);
+        check(hornType != null, "Ice and Fire must register the dragon_horn data component");
+
+        Item core = itemOrAir("pseudocore:copper_dragon_pseudocore");
+        check(core != Items.AIR, "the copper dragon pseudocore must exist");
+        ItemStack stack = new ItemStack(core);
+
+        UUID storedUuid = new UUID(7L, 3L);
+        CompoundTag data = new CompoundTag();
+        data.putInt("AgeTicks", 5 * 24000);
+        stack.set(hornType, new DragonHornComponent(
+                ResourceLocation.fromNamespaceAndPath("iceandfire", "fire_dragon"), storedUuid, data));
+
+        Vec3 pos = Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(4, 1, 4))).add(0.0, 1.0, 0.0);
+        var player = helper.makeMockPlayer(GameType.SURVIVAL);
+        boolean released = IafHornAccess.releaseDragonAt(stack, helper.getLevel(), pos, 0.0F, player);
+
+        check(released, "releaseDragonAt must report a successful release");
+        check(IafHornAccess.read(stack) == null,
+                "release must strip the horn component (removed by value scan, not by field)");
+        check(!stack.isEmpty(), "release must not consume the stack - the emptied core is reusable");
+        var spawned = helper.getLevel().getEntitiesOfClass(DragonBaseEntity.class, new AABB(pos, pos).inflate(4));
+        check(!spawned.isEmpty(), "the stored dragon must reappear at the requested position");
+        check(spawned.get(0).getUUID().equals(storedUuid),
+                "the released dragon must keep its stored UUID, got " + spawned.get(0).getUUID()
+                        + " vs " + storedUuid);
+        check(spawned.get(0).position().distanceTo(pos) < 3.0,
+                "the dragon must appear at the requested position, got " + spawned.get(0).position()
+                        + " vs " + pos);
 
         helper.succeed();
     }
