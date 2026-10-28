@@ -9,9 +9,12 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.animal.Cow;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.bitwisemadness.pseudocore.Pseudocore;
@@ -212,6 +215,49 @@ public final class TierCaptureConfigGameTests {
         Component fallback = PseudocoreItem.alreadyFullMessage(stack, gone, new CompoundTag());
         check(fallback.getString().equals("This pseudocore already holds a creature."),
                 "an unresolvable type must fall back to the generic wording, got: " + fallback.getString());
+
+        helper.succeed();
+    }
+
+    /**
+     * {@code releaseContained} (#91, Curios addon Phase 1) is the block-click
+     * release extracted for callers with no block context. A full round trip
+     * proves the extraction kept every step: capture stores the component and
+     * discards the mob, release spawns it back at the requested position with
+     * its NBT, strips the storage, and keeps the stack itself - an emptied core
+     * must survive, since the addon expects to capture again with the same slot
+     * stack.
+     */
+    @GameTest(template = "test_area")
+    public static void releaseContainedRoundTripsCapture(GameTestHelper helper) {
+        var player = helper.makeMockPlayer(GameType.SURVIVAL);
+        var cow = helper.spawn(EntityType.COW, 2, 1, 2);
+        ItemStack stack = new ItemStack(ModItems.IRON_PSEUDOCORE.get());
+
+        check(PseudocoreItem.tryCapture(player, cow, stack) == InteractionResult.SUCCESS,
+                "capture must succeed for the round trip to mean anything");
+        check(stack.has(ModDataComponents.CONTAINED_MOB.get()),
+                "capture must store the contained_mob component");
+        Vec3 spawnPos = Vec3.atBottomCenterOf(cow.blockPosition()).add(0.0, 1.0, 0.0);
+        check(helper.getLevel().getEntitiesOfClass(Cow.class, new AABB(spawnPos, spawnPos).inflate(3)).isEmpty(),
+                "capture must remove the mob from the world - otherwise release would duplicate it");
+
+        boolean released = PseudocoreItem.releaseContained(stack, helper.getLevel(), spawnPos, 0.0F, player);
+
+        check(released, "releaseContained must report a successful release");
+        check(!stack.has(ModDataComponents.CONTAINED_MOB.get()),
+                "release must strip the storage component");
+        check(!stack.isEmpty(), "release must not consume the stack - the emptied core is reusable");
+        var spawned = helper.getLevel().getEntitiesOfClass(Cow.class, new AABB(spawnPos, spawnPos).inflate(3));
+        check(!spawned.isEmpty(), "the stored cow must reappear at the requested position");
+        check(spawned.get(0).position().distanceTo(spawnPos) < 2.0,
+                "the cow must appear at the requested position, got " + spawned.get(0).position()
+                        + " vs " + spawnPos);
+
+        // The stripped stack can capture again - the addon's recall/release loop.
+        var secondCow = helper.spawn(EntityType.COW, 3, 1, 3);
+        check(PseudocoreItem.tryCapture(player, secondCow, stack) == InteractionResult.SUCCESS,
+                "an emptied core must capture again (the addon's release/recall loop)");
 
         helper.succeed();
     }

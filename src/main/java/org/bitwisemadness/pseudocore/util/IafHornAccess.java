@@ -1,21 +1,32 @@
 package org.bitwisemadness.pseudocore.util;
 
 import com.iafenvoy.iceandfire.config.IafCommonConfig;
+import com.iafenvoy.iceandfire.entity.DragonBaseEntity;
 import com.iafenvoy.iceandfire.item.component.DragonHornComponent;
 import net.minecraft.core.component.TypedDataComponent;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.fml.ModList;
+import org.bitwisemadness.pseudocore.registry.ModGameRules;
 
 import java.util.UUID;
 
 /**
- * Reads Ice and Fire's Dragon Horn storage.
+ * Reads and releases Ice and Fire's Dragon Horn storage.
  *
- * <p>Never reference IaF types outside this class — every path in starts at
- * the mixin, either directly or through the dragon tooltip block that only the
- * mixin invokes, and none of them loads without IaF.</p>
+ * <p>Never reference IaF types outside this class - every entry point lives
+ * here: the mixin paths (capture relaxation, tooltip, stage), and now
+ * {@link #releaseDragonAt}, which the Curios addon's release keybind calls
+ * (#91). That call only ever happens while a dragon core exists in a slot,
+ * which means Ice and Fire is installed, so nothing here loads without IaF.</p>
  *
  * <p>Works by scanning the stack's components for a {@link DragonHornComponent}
  * value rather than looking IaF's {@code DRAGON_HORN} field up by name. The
@@ -101,6 +112,94 @@ public final class IafHornAccess {
     public static UUID storedDragonUuid(ItemStack stack) {
         DragonHornComponent horn = read(stack);
         return horn == null ? null : horn.entityUuid();
+    }
+
+    /**
+     * Release this stack's stored dragon at a position (#91, addon Phase 1):
+     * {@code DragonHornItem.useOn} replicated from the 9128508 bytecode, minus
+     * the block context - resolve the type, create the entity, load the frozen
+     * NBT through {@code DragonBaseEntity.load}, restore the stored UUID,
+     * position it, spawn it, and strip the horn component on success.
+     *
+     * <p>Ownership mirrors {@code DragonHornItemMixin}'s injection exactly -
+     * the gamerule-gated {@code setTame} + {@code tame} sequence, run before
+     * the spawn and skipped when the releasee already owns the dragon - so
+     * releasing from a Curios slot (#91) behaves like releasing against a
+     * block. That logic lives here rather than in the mixin because the mixin
+     * only wraps IaF's own {@code useOn}.</p>
+     *
+     * <p>The strip <b>must not</b> name {@code IafDataComponents.DRAGON_HORN}:
+     * the pack runs CE builds whose static field type differs (architectury's
+     * RegistrySupplier vs NeoForge's DeferredHolder - see this class's javadoc),
+     * so a compiled direct reference can fail at runtime. Instead the stack is
+     * scanned for the component value and removed through its own
+     * {@code TypedDataComponent.type()}, the same value-scan {@link #read} uses.</p>
+     *
+     * @param pos     where the dragon appears (block click: centre of the
+     *                clicked column, one block up; the addon: the player)
+     * @param yRot    facing; IaF's block path uses 180 + the clicker's facing
+     * @param releaser who released it, or null - ownership transfer only for a
+     *                real player under the gamerule
+     * @return true when a dragon was released and the storage was stripped
+     */
+    public static boolean releaseDragonAt(ItemStack stack, ServerLevel level,
+                                          Vec3 pos, float yRot, Player releaser) {
+        DragonHornComponent comp = read(stack);
+        if (comp == null) {
+            return false;
+        }
+
+        EntityType<?> type = BuiltInRegistries.ENTITY_TYPE
+                .getOptional(comp.entityType()).orElse(null);
+        if (type == null) {
+            return false;
+        }
+
+        Entity entity = type.create(level);
+        if (entity == null) {
+            return false;
+        }
+
+        if (entity instanceof DragonBaseEntity dragon) {
+            dragon.load(comp.entityData());
+        }
+
+        UUID stored = comp.entityUuid();
+        if (stored != null) {
+            entity.setUUID(stored);
+        }
+
+        entity.absMoveTo(pos.x, pos.y, pos.z, yRot, 0.0F);
+
+        // Ownership before the spawn, exactly as the mixin injects it into
+        // IaF's own useOn - proven in the field on the block-click path.
+        if (releaser != null
+                && ModGameRules.isDragonHornTransferEnabled(level)
+                && entity instanceof TamableAnimal tame
+                && !tame.isOwnedBy(releaser)) {
+            tame.setTame(true, true);
+            tame.tame(releaser);
+        }
+
+        if (level.addFreshEntity(entity)) {
+            stripDragonHorn(stack);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Remove the horn component found by value scan, never by field reference -
+     * see {@link #releaseDragonAt} for the cross-build type mismatch that makes
+     * a compiled {@code IafDataComponents.DRAGON_HORN} reference unsafe.
+     */
+    private static void stripDragonHorn(ItemStack stack) {
+        for (TypedDataComponent<?> component : stack.getComponents()) {
+            if (component.value() instanceof DragonHornComponent) {
+                stack.remove(component.type());
+                return;
+            }
+        }
     }
 
     /** The growth addon whose stretch formula {@link DragonStages} mirrors. */
