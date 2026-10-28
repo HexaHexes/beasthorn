@@ -51,24 +51,34 @@ public final class PseudocoreTintHandler {
      * which leaves the texture as drawn, and every other tier multiplies it by
      * its metal's colour, the way dyed armour works. Every value is opaque -
      * ItemRenderer reads the alpha raw (see the note in {@link #TINT}), so a
-     * translucent value here would render the body invisible. Palette proposed
-     * in the tinting issue and open to taste.
+     * translucent value here would render the body invisible.
+     *
+     * <p>Provenance differs by tier (#71). The Tensura metals are sampled from
+     * Tensura's own {@code <metal>_ingot.png} textures: the mean of the opaque
+     * pixels that carry hue - luminance between 40 and 235, excluding the dark
+     * outline and the white highlight - which is the colour a glance reads as
+     * that metal. So orichalcum is the ingot's yellow-green rather than an
+     * orange, adamantite its dark green rather than a blue-grey, and
+     * hihiirokane its pale silver-cyan rather than a red. The vanilla tiers
+     * keep their curated values - they were not part of the mismatch - and
+     * iron stays opaque white, which is the deliberate baseline that renders
+     * the body art exactly as drawn.</p>
      */
     private static final Map<String, Integer> BODY_COLORS = Map.ofEntries(
             Map.entry("copper_pseudocore", 0xFFE88C5A),
-            Map.entry("silver_pseudocore", 0xFFDDE4EA),
+            Map.entry("silver_pseudocore", 0xFF969DA4),
             Map.entry("gold_pseudocore", 0xFFF6D75C),
             Map.entry("netherite_pseudocore", 0xFF6A5F63),
-            Map.entry("low_magisteel_pseudocore", 0xFF9FA8B0),
-            Map.entry("high_magisteel_pseudocore", 0xFFC4CFD8),
-            Map.entry("pure_magisteel_pseudocore", 0xFFE9F1F6),
-            Map.entry("mithril_pseudocore", 0xFFC7D9EE),
-            Map.entry("orichalcum_pseudocore", 0xFFE5A44E),
-            Map.entry("adamantite_pseudocore", 0xFF59627A),
-            Map.entry("hihiirokane_pseudocore", 0xFFE0513D),
+            Map.entry("low_magisteel_pseudocore", 0xFFB1B3B1),
+            Map.entry("high_magisteel_pseudocore", 0xFFB7BDB9),
+            Map.entry("pure_magisteel_pseudocore", 0xFFB1BBC5),
+            Map.entry("mithril_pseudocore", 0xFFA5B5E0),
+            Map.entry("orichalcum_pseudocore", 0xFFB8C935),
+            Map.entry("adamantite_pseudocore", 0xFF426F59),
+            Map.entry("hihiirokane_pseudocore", 0xFF9397AE),
             Map.entry("copper_dragon_pseudocore", 0xFFE88C5A),
             Map.entry("iron_dragon_pseudocore", 0xFFFFFFFF),
-            Map.entry("silver_dragon_pseudocore", 0xFFDDE4EA),
+            Map.entry("silver_dragon_pseudocore", 0xFF969DA4),
             Map.entry("gold_dragon_pseudocore", 0xFFF6D75C),
             Map.entry("netherite_dragon_pseudocore", 0xFF6A5F63));
 
