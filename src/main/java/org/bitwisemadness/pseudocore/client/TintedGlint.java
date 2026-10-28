@@ -59,6 +59,22 @@ public final class TintedGlint {
      */
     private static boolean pending;
 
+    /**
+     * Glint-chain diagnostics for #67: the first few pseudocore renders log the
+     * full arm state, and the first tinted pick logs once. One-shot by
+     * construction, so a live session writes at most a handful of INFO lines
+     * and the invisible-failure chain (shader? type? filled? picked?) becomes
+     * readable from latest.log. Safe to delete once #67 is understood; nothing
+     * behavioural depends on it.
+     */
+    private static int diagnosticsRemaining = 8;
+
+    /** Whether the one-shot "tinted type was picked" line has been written. */
+    private static boolean loggedTintedPick;
+
+    /** Whether the one-shot "shader registered" line has been written. */
+    private static boolean loggedShaderRegistration;
+
     private TintedGlint() {
     }
 
@@ -69,6 +85,11 @@ public final class TintedGlint {
         // supplier state so the next frame rebuilds against the live shader.
         type = null;
         typeFailed = false;
+        if (!loggedShaderRegistration) {
+            loggedShaderRegistration = true;
+            Pseudocore.LOGGER.info("Glint debug: tinted glint shader registered ({})",
+                    instance == null ? "null" : instance.getName());
+        }
     }
 
     /**
@@ -88,7 +109,19 @@ public final class TintedGlint {
      * never applies leaves these items glintless - never violet).
      */
     public static boolean arm(ItemStack stack) {
-        pending = shader != null && type() != null && isFilledPseudocore(stack);
+        boolean filled = isFilledPseudocore(stack);
+        boolean hasShader = shader != null;
+        boolean hasType = type() != null;
+        pending = hasShader && hasType && filled;
+        // #67 diagnostics: only pseudocore items are interesting, and only the
+        // first few renders, so a session writes a handful of lines and no more.
+        if (isPseudocoreItem(stack) && diagnosticsRemaining > 0) {
+            diagnosticsRemaining--;
+            Pseudocore.LOGGER.info(
+                    "Glint debug: arm (pseudocore) filled={} shader={} type={} -> pending={} [{}]",
+                    filled, hasShader, hasType, pending,
+                    BuiltInRegistries.ITEM.getKey(stack.getItem()));
+        }
         return pending;
     }
 
@@ -98,6 +131,10 @@ public final class TintedGlint {
             return vanilla;
         }
         pending = false;
+        if (!loggedTintedPick) {
+            loggedTintedPick = true;
+            Pseudocore.LOGGER.info("Glint debug: tinted glint RenderType handed to the buffer pick");
+        }
         RenderType tinted = type();
         return tinted != null ? tinted : vanilla;
     }
@@ -120,6 +157,16 @@ public final class TintedGlint {
                 && IafHornAccess.storedDragonType(stack) == null) {
             return false;
         }
+        return isPseudocoreItem(stack);
+    }
+
+    /**
+     * Whether the stack is a registered pseudocore of either line, by item id
+     * rather than by item class: {@code DragonPseudocoreItem} extends Ice and
+     * Fire's horn, so an instanceof would try to load IaF on a client that
+     * does not have it - while the id is there whatever is installed.
+     */
+    private static boolean isPseudocoreItem(ItemStack stack) {
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
         return Pseudocore.MOD_ID.equals(id.getNamespace()) && id.getPath().endsWith("_pseudocore");
     }
