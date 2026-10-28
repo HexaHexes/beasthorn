@@ -10,6 +10,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
+import net.neoforged.neoforge.client.event.RegisterRenderBuffersEvent;
 import net.neoforged.neoforge.client.event.RegisterShadersEvent;
 import org.bitwisemadness.pseudocore.Pseudocore;
 import org.bitwisemadness.pseudocore.registry.ModDataComponents;
@@ -26,7 +27,7 @@ import java.io.IOException;
  * on a dedicated server.</p>
  *
  * <p>The bus is not spelled out: {@code AutomaticEventSubscriber} routes each
- * listener from its event type, and both events here are {@code IModBusEvent}s,
+ * listener from its event type, and every event here is an {@code IModBusEvent},
  * so they are registered on the mod bus automatically. (The annotation's own
  * {@code bus} attribute is deprecated for removal precisely because this
  * detection replaced it.)</p>
@@ -96,5 +97,20 @@ public final class PseudocoreClientEvents {
             Pseudocore.LOGGER.warn("Could not load the tinted glint shader; "
                     + "filled pseudocores will render without a glint", e);
         }
+    }
+
+    /**
+     * Gives the tinted glint its own fixed render buffer (#67): a dedicated
+     * arena and a slot in the final {@code endBatch()} sweep, which is where
+     * vanilla's own glint types flush - after the item's geometry has written
+     * the depth their EQUAL_DEPTH_TEST needs. Without a slot here the type
+     * falls onto BufferSource's shared-buffer path, whose eager flush discards
+     * its (still empty) buffer on the next unrelated request, so the glint's
+     * quads are written into a builder nothing ever draws again. Fires on the
+     * client mod bus right after vanilla's buffers are seeded.
+     */
+    @SubscribeEvent
+    public static void onRegisterRenderBuffers(RegisterRenderBuffersEvent event) {
+        TintedGlint.registerRenderBuffer(event);
     }
 }

@@ -122,4 +122,36 @@ class TintedGlintAssetsTest {
                             + "rule that keeps Ice and Fire optional: " + clientSource);
         }
     }
+
+    /**
+     * The #67 root cause: a RenderType that is not registered as a fixed
+     * render buffer lands on BufferSource's shared lastSharedType path, whose
+     * eager flush discards its still-empty builder on the next shared request -
+     * the glint's quads are then written into a builder nothing ever draws, and
+     * the failure is completely silent. The wiring (event listener -&gt; type
+     * registration -&gt; arm/takePending gating) has to survive; nothing else
+     * in the suite can see it.
+     */
+    @Test
+    void tintedGlintRegistersAsAFixedRenderBuffer() throws IOException {
+        String events = Files.readString(Path.of(
+                "src/main/java/org/bitwisemadness/pseudocore/client/PseudocoreClientEvents.java"));
+        assertTrue(events.contains("RegisterRenderBuffersEvent"),
+                "PseudocoreClientEvents must listen for RegisterRenderBuffersEvent - "
+                        + "without it the tinted glint's geometry is silently dropped (#67)");
+        assertTrue(events.contains("TintedGlint.registerRenderBuffer(event)"),
+                "the listener must hand the event to TintedGlint, not just observe it");
+
+        String glint = Files.readString(GLINT_SOURCE);
+        assertTrue(glint.contains("event.registerRenderBuffer("),
+                "TintedGlint must actually register its RenderType as a fixed buffer (#67)");
+        assertTrue(glint.contains("registeredFixedBuffer"),
+                "the glint must gate on its own registration: handing an unregistered "
+                        + "type to the buffer pick is the exact silent failure of #67");
+        // The instance must stay stable across shader reloads: the fixed-buffer
+        // map is keyed by identity, so a rebuild desyncs the key from the pick.
+        assertTrue(!glint.matches("(?s).*setShader\\(ShaderInstance instance\\) \\{.*?type = null;.*?\\}"),
+                "setShader must not drop the RenderType instance - the fixed-buffer "
+                        + "map holds that exact instance (#67)");
+    }
 }
