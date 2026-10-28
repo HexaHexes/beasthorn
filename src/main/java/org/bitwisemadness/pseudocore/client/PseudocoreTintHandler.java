@@ -30,6 +30,12 @@ import java.util.Map;
  * exception (#51): their orbs tint by element, or by the dragon's own colour
  * when {@code dragonTintMode} says so - see {@link DragonTints}. No extra NBT
  * is stored, so the tint can never drift out of sync with the mob inside.</p>
+ *
+ * <p>Empty horns are the exception on the other side (#53): with no contained
+ * mob the orb layer is multiplied by plain white, so the dull empty-state art
+ * renders exactly as drawn - tinting it would double-dim and muddy it. The
+ * model itself also swaps to the empty art via the {@code pseudocore:filled}
+ * predicate, so both halves of the state agree.</p>
  */
 public final class PseudocoreTintHandler {
 
@@ -151,7 +157,10 @@ public final class PseudocoreTintHandler {
             return bodyColor(stack);
         }
         ContainedMobComponent comp = stack.get(ModDataComponents.CONTAINED_MOB.get());
-        return (comp == null ? FALLBACK : orbColor(comp)) | 0xFF000000;
+        // An empty horn is not tinted (#53): the dull empty-state art must
+        // render exactly as drawn - multiplying it by a colour would double-dim
+        // and muddy it. Filled horns keep the tint paths above untouched.
+        return comp == null ? 0xFFFFFFFF : orbColor(comp) | 0xFF000000;
     };
 
     /**

@@ -1,7 +1,7 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "pseudocore:item/pseudocore_orbs",
+    "layer0": "pseudocore:item/pseudocore_orbs_empty",
     "layer1": "pseudocore:item/pseudocore_body",
     "particle": "pseudocore:item/pseudocore_body"
   },
@@ -26,5 +26,13 @@
       "translation": [1.13, 3.2, 1.13],
       "scale": [0.88, 0.68, 0.88]
     }
-  }
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "pseudocore:filled": 1.0
+      },
+      "model": "pseudocore:item/iron_pseudocore_filled"
+    }
+  ]
 }
