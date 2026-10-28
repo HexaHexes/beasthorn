@@ -21,7 +21,7 @@
   "pseudocore.message.owned": "This creature is owned by another player.",
   "pseudocore.message.tamed": "This tier cannot capture tamed creatures.",
   "pseudocore.message.named": "This tier cannot capture named creatures.",
-  "pseudocore.message.too_grown": "The %s has grown beyond this pseudocore's stage.",
+  "pseudocore.message.too_grown": "The %s has grown beyond this %s's capacity.",
   "pseudocore.tooltip.ep_cap": "Captures mobs up to %s EP",
   "pseudocore.tooltip.ep_cap_dragon": "Captures Dragons up to %s EP",
   "pseudocore.tooltip.no_ep_restriction": "Has no EP restrictions",
