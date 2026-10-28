@@ -1,8 +1,12 @@
 package org.bitwisemadness.pseudocore.gametest;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Wolf;
@@ -16,6 +20,7 @@ import org.bitwisemadness.pseudocore.item.PseudocoreItem;
 import org.bitwisemadness.pseudocore.item.component.ContainedMobComponent;
 import org.bitwisemadness.pseudocore.registry.ModDataComponents;
 import org.bitwisemadness.pseudocore.registry.ModItems;
+import org.bitwisemadness.pseudocore.util.VariantHelper;
 
 import java.util.List;
 import java.util.Map;
@@ -149,6 +154,64 @@ public final class TierCaptureConfigGameTests {
         InteractionResult allowed = PseudocoreItem.tryCapture(player, wolf, stack);
         check(allowed == InteractionResult.SUCCESS,
                 "with the switch restored the capture succeeds, got " + allowed);
+
+        helper.succeed();
+    }
+
+    /**
+     * The "already holds" refusal names the tier and the stored mob (#75), in
+     * the same words the tooltip's Race line uses. The direwolf is the probe
+     * because its variant composes with the species ("Blue Fang Direwolf"), so
+     * a message that dropped the variant, or invented its own wording, fails
+     * here.
+     */
+    @GameTest(template = "test_area")
+    public static void fullCoreRefusalNamesTierAndStoredMob(GameTestHelper helper) {
+        ResourceLocation direwolfId = ResourceLocation.fromNamespaceAndPath("tensura", "direwolf");
+        EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(direwolfId).orElse(null);
+        if (type == null) {
+            // Tensura absent - the variant machinery cannot be probed here.
+            helper.succeed();
+            return;
+        }
+        String species = type.getDescription().getString();
+        ItemStack stack = new ItemStack(ModItems.IRON_PSEUDOCORE.get());
+
+        // Without a variant the message names the species alone.
+        Component bare = PseudocoreItem.alreadyFullMessage(stack, direwolfId, new CompoundTag());
+        check(bare.getString().equals("This Iron Pseudocore already holds a " + species + "."),
+                "a variantless stored mob must be named by its species, got: " + bare.getString());
+
+        // With a variant the message carries it ahead of the species - the
+        // tooltip's own race string, so the two can never drift apart. The
+        // stored ids are Tensura's own table, so the probe walks every index
+        // that resolves rather than hardcoding one.
+        int covered = 0;
+        for (int id = 0; id < 8; id++) {
+            CompoundTag data = new CompoundTag();
+            data.putInt("Variant", id);
+            VariantHelper.Variant variant = VariantHelper.variantOf(direwolfId, data);
+            if (variant == null) {
+                continue; // an id this build does not know - not our business
+            }
+            covered++;
+            String expected = variant.replacesRace()
+                    || VariantHelper.alreadyNamesMob(variant.text(), species)
+                    ? variant.text()
+                    : variant.text() + " " + species;
+            Component named = PseudocoreItem.alreadyFullMessage(stack, direwolfId, data);
+            check(named.getString().equals("This Iron Pseudocore already holds a " + expected + "."),
+                    "variant " + id + " (" + variant.text() + ") must render as: This Iron Pseudocore "
+                            + "already holds a " + expected + "., got: " + named.getString());
+        }
+        check(covered > 0,
+                "no direwolf variant resolved at all, so the variant composition path was never exercised");
+
+        // A removed mob keeps the generic wording instead of a registry id.
+        ResourceLocation gone = ResourceLocation.fromNamespaceAndPath("pseudocore", "extinct_probe");
+        Component fallback = PseudocoreItem.alreadyFullMessage(stack, gone, new CompoundTag());
+        check(fallback.getString().equals("This pseudocore already holds a creature."),
+                "an unresolvable type must fall back to the generic wording, got: " + fallback.getString());
 
         helper.succeed();
     }

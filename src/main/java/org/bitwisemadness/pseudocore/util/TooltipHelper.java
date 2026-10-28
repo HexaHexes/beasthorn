@@ -55,20 +55,9 @@ public final class TooltipHelper {
             tooltip.add(named("Name", customName));
         }
 
-        // Race - the mob's entity type description, preceded by its variant
-        // where one exists. Prepending reads "Emerald Fire Dragon", which is
-        // the shape IaF already gives hippogryphs through its own lang value;
-        // that one species names the mob outright, so it replaces instead. A
-        // variant that names the species on its own - a direwolf's "Mystic
-        // Wind Wolf" - retires the race for the same reason.
-        VariantHelper.Variant variant = VariantHelper.variantOf(typeId, data);
-        String race = describeEntityType(typeId);
-        if (variant != null) {
-            race = variant.replacesRace() || VariantHelper.alreadyNamesMob(variant.text(), race)
-                    ? variant.text()
-                    : variant.text() + " " + race;
-        }
-        tooltip.add(line("Race", race, ChatFormatting.AQUA));
+        // Race - composed by the shared helper so the tooltip and the capture
+        // refusals can never disagree about what a stored mob is called.
+        tooltip.add(line("Race", raceDisplay(typeId, data), ChatFormatting.AQUA));
 
         // Owner - resolve the UUID to a player name where possible.
         resolveOwner(data).ifPresent(uuid -> tooltip.add(
@@ -88,6 +77,33 @@ public final class TooltipHelper {
         Optional<Double> ep = TensuraBridge.readEpFromNbt(data);
         ep.ifPresent(value -> tooltip.add(
                 line("EP", formatEp(value), ChatFormatting.LIGHT_PURPLE)));
+    }
+
+    /**
+     * The race line for a stored mob: its entity type description, preceded by
+     * its variant where one exists.
+     *
+     * <p>Prepending reads "Emerald Fire Dragon", which is the shape IaF already
+     * gives hippogryphs through its own lang value; that one species names the
+     * mob outright, so it replaces instead. A variant that names the species on
+     * its own - a direwolf's "Mystic Wind Wolf" - retires the race for the same
+     * reason (see {@link VariantHelper#alreadyNamesMob}).</p>
+     *
+     * <p>Shared by the tooltip and the "already holds" capture refusals (#75),
+     * so both always call the same stored mob by the same name.</p>
+     *
+     * @return the display string, never null; an unknown type degrades to the
+     *         registry id through {@link #describeEntityType}
+     */
+    public static String raceDisplay(ResourceLocation typeId, CompoundTag data) {
+        VariantHelper.Variant variant = VariantHelper.variantOf(typeId, data);
+        String race = describeEntityType(typeId);
+        if (variant == null) {
+            return race;
+        }
+        return variant.replacesRace() || VariantHelper.alreadyNamesMob(variant.text(), race)
+                ? variant.text()
+                : variant.text() + " " + race;
     }
 
     /**
