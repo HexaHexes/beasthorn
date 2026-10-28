@@ -59,5 +59,8 @@ path. (Note: this repo uses `runGameTestServer`, not `runGametest`.)
 ## CI & release model - this repo
 
 - `ci.yml` runs the template's three checks (junit, gametest, version-bump).
-- No `release.yml` yet: the repo ships no release workflow - when the template's
-  release workflow lands here it tags and publishes on a version bump.
+- `release.yml` cuts the GitHub release for `v<mod_version>` on a push to `main`
+  (pre-releases only when the repo variable `ALPHA_RELEASES` is true), and
+  `publish.yml` publishes the Maven artifact to the org's GitHub Packages
+  registry when that release is published - see the org rulebook for the
+  consumer-side auth details (`PACKAGE_READ_TOKEN`).
