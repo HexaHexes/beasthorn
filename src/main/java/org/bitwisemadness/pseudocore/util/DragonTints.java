@@ -19,8 +19,9 @@ import java.util.Map;
  * not know (the DragonColor registry is datapack-driven, so names are
  * open-ended).</p>
  *
- * <p>Deliberately imports <b>no</b> foreign type at all, mirroring
- * {@link VariantHelper} and {@link DragonStages}: the twelve IaF colours are
+ * <p>Deliberately imports <b>no</b> foreign type at all, mirroring the
+ * shared library's {@code VariantHelper} and this package's
+ * {@link DragonStages}: the twelve IaF colours are
  * recorded here as data, so this class is pure and junit-testable, and the
  * mod compiles and runs with Ice and Fire absent.</p>
  *
@@ -81,8 +82,8 @@ public final class DragonTints {
     /**
      * The dragon element of an entity type id path, or {@code null} when the
      * id is not one of Ice and Fire's three dragons. Matched on the path
-     * alone, exactly as {@link VariantHelper} keys its dragon handling, so a
-     * renamed namespace does not silently disable the tint.
+     * alone, exactly as the shared {@code VariantHelper} keys its dragon
+     * handling, so a renamed namespace does not silently disable the tint.
      */
     public static String elementOf(String entityPath) {
         return switch (entityPath) {

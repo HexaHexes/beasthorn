@@ -20,7 +20,7 @@ import org.bitwisemadness.pseudocore.item.PseudocoreItem;
 import org.bitwisemadness.pseudocore.item.component.ContainedMobComponent;
 import org.bitwisemadness.pseudocore.registry.ModDataComponents;
 import org.bitwisemadness.pseudocore.registry.ModItems;
-import org.bitwisemadness.pseudocore.util.VariantHelper;
+import org.bitwisemadness.mobinfocommon.variant.VariantHelper;
 
 import java.util.List;
 import java.util.Map;
