@@ -68,6 +68,12 @@ public final class DragonLineGameTests {
     private static final List<String> DRAGON_METALS =
             List.of("copper", "iron", "silver", "gold", "netherite");
     private static final int[] STAGE_LADDER = {1, 2, 3, 4, 5};
+    /**
+     * The default EP caps, one per metal in {@link #DRAGON_METALS} order:
+     * 1.5x that stage's end-of-row EP from Tensura's progression, with the
+     * netherite tier - the line's last, its cap of caps - uncapped at 0.
+     */
+    private static final double[] DEFAULT_DRAGON_MAX_EP = {150_000.0, 300_000.0, 525_000.0, 825_000.0, 0.0};
     private static final Pattern DIGITS = Pattern.compile("\\d+");
 
     private DragonLineGameTests() {
@@ -132,12 +138,16 @@ public final class DragonLineGameTests {
             check(section != null, "no dragon config section for tier " + key);
             check(section.maxStage.get() == STAGE_LADDER[i],
                     key + ".maxStage must default to " + STAGE_LADDER[i] + ", got " + section.maxStage.get());
-            check(section.maxEP.get() == 0.0D, key + ".maxEP must default to 0 (no cap)");
+            double expectedMaxEP = DEFAULT_DRAGON_MAX_EP[i];
+            check(section.maxEP.get() == expectedMaxEP,
+                    key + ".maxEP must default to " + expectedMaxEP
+                            + " (1.5x its stage's end-of-row EP, 0 for the uncapped netherite tier), got "
+                            + section.maxEP.get());
             check(section.allowTamedMobs.get(), key + " must default to allowing tamed dragons");
             check(section.allowTensuraNamed.get(), key + " must default to allowing named dragons");
 
             PseudocoreConfig.DragonTierLimits limits = PseudocoreConfig.COMMON.dragonTierLimits(key);
-            check(limits.maxStage() == STAGE_LADDER[i] && limits.maxEP() == 0.0D
+            check(limits.maxStage() == STAGE_LADDER[i] && limits.maxEP() == expectedMaxEP
                     && limits.allowTamedMobs() && limits.allowTensuraNamed(),
                     "the resolved limits for " + key + " must match the section's defaults");
         }

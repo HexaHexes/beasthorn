@@ -78,12 +78,12 @@ matter while Tensura is installed and the integration is on.
 
 | Tier | Max EP | Tier | Max EP |
 |---|---|---|---|
-| Copper | 1,000 | Low Magisteel | 100,000 |
-| Iron | 5,000 | High Magisteel | 150,000 |
-| Silver | 10,000 | Pure Magisteel | 200,000 |
-| Gold | 25,000 | Mithril | 300,000 |
-| Netherite | 75,000 | Orichalcum | 500,000 |
-| | | Adamantite | 1,000,000 |
+| Copper | 1,500 | Low Magisteel | 150,000 |
+| Iron | 7,500 | High Magisteel | 225,000 |
+| Silver | 15,000 | Pure Magisteel | 300,000 |
+| Gold | 37,500 | Mithril | 450,000 |
+| Netherite | 112,500 | Orichalcum | 750,000 |
+| | | Adamantite | 1,500,000 |
 | | | Hihi'irokane | uncapped |
 
 Every cap is configurable per tier in `config/pseudocore-server.toml`
@@ -109,13 +109,13 @@ that speaks IaF's own capture language: the same ownership guard (you capture a
 dragon **you own**, never someone else's), and a second, **growth-stage** cap so a
 starter core can't pocket an ancient wyrm.
 
-| Tier | Max stage | Tier | Max stage |
-|---|---|---|---|
-| Copper Dragon | 1 | Gold Dragon | 4 |
-| Iron Dragon | 2 | Netherite Dragon | 5 |
-| Silver Dragon | 3 | | |
+| Tier | Max stage | Max EP | Tier | Max stage | Max EP |
+|---|---|---|---|---|---|
+| Copper Dragon | 1 | 150,000 | Gold Dragon | 4 | 825,000 |
+| Iron Dragon | 2 | 300,000 | Netherite Dragon | 5 | uncapped |
+| Silver Dragon | 3 | 525,000 | | | |
 
-Dragon tiers also take a per-tier EP cap and the same tamed/named switches, in
+Dragon tiers also take the same tamed/named switches, in
 `[pseudocore.dragonTiers.<tier>]` of the same file. Stage is derived the way Ice
 and Fire derives it for the living dragon - its own age bands over the pack's
 configured growth schedule, so a 512-day growth clock reads stage 1 where stock
