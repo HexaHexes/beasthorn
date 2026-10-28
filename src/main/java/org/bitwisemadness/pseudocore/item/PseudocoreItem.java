@@ -85,9 +85,13 @@ public class PseudocoreItem extends Item {
 
         // A horn that already holds a mob must not capture a second one on top of
         // it - that would silently destroy the stored mob. IaF's Dragon Horn makes
-        // this same check before it stores anything.
-        if (stack.has(ModDataComponents.CONTAINED_MOB.get())) {
-            return refuse(player, Component.translatable("pseudocore.message.already_full"));
+        // this same check before it stores anything. The refusal names the tier
+        // and the stored mob (#75), reusing the tooltip's race string so the two
+        // can never disagree; only an unresolvable type (a datapack removed the
+        // mob) falls back to the generic wording.
+        ContainedMobComponent held = stack.get(ModDataComponents.CONTAINED_MOB.get());
+        if (held != null) {
+            return refuse(player, alreadyFullMessage(stack, held.entityType(), held.entityData()));
         }
 
         // Ownership guard: allow if the mob has no owner, or the clicker is the
@@ -161,6 +165,29 @@ public class PseudocoreItem extends Item {
      * <p>The message is sent server-side only so it reaches the client exactly
      * once as a packet; {@code PASS} itself is returned on both sides.</p>
      */
+    /**
+     * The "already holds" refusal, naming the tier and the stored mob (#75):
+     * "This Iron Pseudocore already holds a Blue Fang Direwolf."
+     *
+     * <p>The race string comes from {@link TooltipHelper#raceDisplay}, the
+     * tooltip's own composer, so the message and the horn's Race line can never
+     * disagree about what the stored mob is called. The tier argument is
+     * {@code getHoverName()}, the same source the {@code too_grown} refusal
+     * already uses, so a renamed core names itself.</p>
+     *
+     * <p>Public so the dragon line builds the same sentence from its IaF-side
+     * storage and the game test can pin the wording. A type that no longer
+     * resolves - a datapack removed the mob - keeps the generic wording rather
+     * than printing a registry id into a sentence.</p>
+     */
+    public static Component alreadyFullMessage(ItemStack stack, ResourceLocation typeId, CompoundTag data) {
+        if (typeId == null || BuiltInRegistries.ENTITY_TYPE.getOptional(typeId).isEmpty()) {
+            return Component.translatable("pseudocore.message.already_full_generic");
+        }
+        return Component.translatable("pseudocore.message.already_full",
+                stack.getHoverName(), TooltipHelper.raceDisplay(typeId, data));
+    }
+
     private static InteractionResult refuse(Player player, Component reason) {
         if (!player.level().isClientSide()) {
             player.displayClientMessage(reason.copy().withStyle(ChatFormatting.RED), true);

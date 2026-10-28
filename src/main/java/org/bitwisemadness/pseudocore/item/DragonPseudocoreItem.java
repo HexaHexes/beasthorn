@@ -2,6 +2,7 @@ package org.bitwisemadness.pseudocore.item;
 
 import com.iafenvoy.iceandfire.entity.DragonBaseEntity;
 import com.iafenvoy.iceandfire.item.DragonHornItem;
+import com.iafenvoy.iceandfire.item.component.DragonHornComponent;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
@@ -10,6 +11,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import org.bitwisemadness.pseudocore.config.PseudocoreConfig;
+import org.bitwisemadness.pseudocore.util.IafHornAccess;
 import org.bitwisemadness.pseudocore.util.TensuraBridge;
 
 /**
@@ -49,6 +51,17 @@ public class DragonPseudocoreItem extends DragonHornItem {
         }
 
         PseudocoreConfig.DragonTierLimits limits = PseudocoreConfig.dragonTierLimits(this);
+
+        // A horn that already holds a dragon must not capture a second one on
+        // top of it. IaF checks this itself before storing, but its refusal is
+        // its own wording; ours names the tier and the stored dragon the same
+        // way the beast line does (#75), and runs first so the player always
+        // sees one consistent message.
+        DragonHornComponent held = IafHornAccess.read(stack);
+        if (held != null) {
+            return refuse(player, PseudocoreItem.alreadyFullMessage(
+                    stack, held.entityType(), held.entityData()));
+        }
 
         if (!limits.allowTamedMobs() && dragon.isTame()) {
             return refuse(player, Component.translatable("pseudocore.message.tamed"));
