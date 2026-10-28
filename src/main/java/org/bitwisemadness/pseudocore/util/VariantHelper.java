@@ -266,9 +266,16 @@ public final class VariantHelper {
         return intVariant(data, VariantBridge::drake);
     }
 
-    /** The stored variant as a raw string, or null if it is not one. */
-    private static String stringVariant(CompoundTag data) {
-        if (!data.contains(VARIANT_KEY, Tag.TAG_STRING)) return null;
+    /**
+     * The stored variant as a raw string, or null if it is not one.
+     *
+     * <p>Public because the dragon tint path (#51) needs the <b>raw</b> stored
+     * value - the un-localized {@code DragonColor} name - which the Race line's
+     * {@link Variant} deliberately translates away. Keeping the read here
+     * means the {@code Variant} key and its type guard stay in one place.</p>
+     */
+    public static String stringVariant(CompoundTag data) {
+        if (data == null || !data.contains(VARIANT_KEY, Tag.TAG_STRING)) return null;
         return data.getString(VARIANT_KEY);
     }
 
