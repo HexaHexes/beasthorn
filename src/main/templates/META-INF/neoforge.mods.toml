@@ -40,6 +40,12 @@ config="pseudocore.mixins.json"
 config="pseudocore.iaf.mixins.json"
 requiredMods=["iceandfire"]
 
+# The client-only render mixin config (tinted glint, #55). Its "client" array
+# keeps the classes off a dedicated server, and the config is required:false
+# so a missing target degrades to no glint instead of failing at load time.
+[[mixins]]
+config="pseudocore.client.mixins.json"
+
 # A dependency - use the . to indicate dependency for a specific modid. Dependencies are optional.
 [[dependencies.pseudocore]] #optional
     # the modid of the dependency

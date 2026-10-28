@@ -1,5 +1,7 @@
 package org.bitwisemadness.pseudocore.client;
 
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
@@ -8,13 +10,16 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
+import net.neoforged.neoforge.client.event.RegisterShadersEvent;
 import org.bitwisemadness.pseudocore.Pseudocore;
 import org.bitwisemadness.pseudocore.registry.ModDataComponents;
 import org.bitwisemadness.pseudocore.registry.ModItems;
 
+import java.io.IOException;
+
 /**
- * Client-only wiring. Registers the orb tint handler and the empty/filled
- * model predicate.
+ * Client-only wiring. Registers the orb tint handler, the empty/filled
+ * model predicate, and the tinted glint shader.
  *
  * <p>Split from the tint logic itself so no client-only class is ever loaded
  * on a dedicated server.</p>
@@ -59,5 +64,30 @@ public final class PseudocoreClientEvents {
                         stack.has(ModDataComponents.CONTAINED_MOB.get()) ? 1.0F : 0.0F);
             }
         });
+    }
+
+    /**
+     * Registers the tinted glint program (#55): vanilla's glint scroll, blend
+     * and fog, with a Color attribute so the shimmer multiplies by the quad's
+     * own colour - the same {@code ItemColors} result the orbs render with.
+     * NeoForge's event hands the instance to vanilla's shader lifecycle, and
+     * the consumer re-publishes it on reload. A load failure is caught here
+     * (the bus invokes listeners reflectively, so no checked exception may
+     * escape) and simply leaves the glint unavailable - see {@link TintedGlint}.
+     */
+    @SubscribeEvent
+    public static void onRegisterShaders(RegisterShadersEvent event) {
+        try {
+            ShaderInstance shader = new ShaderInstance(
+                    event.getResourceProvider(),
+                    ResourceLocation.fromNamespaceAndPath(Pseudocore.MOD_ID, "tinted_glint"),
+                    // Must match TintedGlint's RenderType format: Position + UV0 + Color.
+                    DefaultVertexFormat.POSITION_TEX_COLOR);
+            TintedGlint.setShader(shader);
+            event.registerShader(shader, TintedGlint::setShader);
+        } catch (IOException e) {
+            Pseudocore.LOGGER.warn("Could not load the tinted glint shader; "
+                    + "filled pseudocores will render without a glint", e);
+        }
     }
 }
