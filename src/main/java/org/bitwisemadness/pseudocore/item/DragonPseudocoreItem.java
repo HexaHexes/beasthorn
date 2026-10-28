@@ -64,8 +64,10 @@ public class DragonPseudocoreItem extends DragonHornItem {
             }
         }
         if (limits.maxStage() > 0 && dragon.getDragonStage() > limits.maxStage()) {
+            // Second argument names the tier item itself: the refusal reads
+            // "beyond this Copper Dragon Pseudocore's capacity", not "this pseudocore".
             return refuse(player, Component.translatable("pseudocore.message.too_grown",
-                    target.getType().getDescription()));
+                    target.getType().getDescription(), stack.getHoverName()));
         }
 
         return super.interactLivingEntity(stack, player, target, hand);
