@@ -46,22 +46,22 @@ public final class TierCaptureConfigGameTests {
             "hihiirokane");
 
     /**
-     * The default EP caps, following Tensura's own EP progression (see the tier
-     * list in {@code PseudocoreConfig}). Hihi'irokane, the cap of caps, is
-     * uncapped.
+     * The default EP caps, following Tensura's own EP progression rebased at
+     * x1.5 (see the tier list in {@code PseudocoreConfig}). Hihi'irokane, the
+     * last tier and the cap of caps, is uncapped.
      */
     private static final Map<String, Double> DEFAULT_MAX_EP = Map.ofEntries(
-            Map.entry("copper", 1_000.0),
-            Map.entry("iron", 5_000.0),
-            Map.entry("silver", 10_000.0),
-            Map.entry("gold", 25_000.0),
-            Map.entry("netherite", 75_000.0),
-            Map.entry("lowMagisteel", 100_000.0),
-            Map.entry("highMagisteel", 150_000.0),
-            Map.entry("pureMagisteel", 200_000.0),
-            Map.entry("mithril", 300_000.0),
-            Map.entry("orichalcum", 500_000.0),
-            Map.entry("adamantite", 1_000_000.0),
+            Map.entry("copper", 1_500.0),
+            Map.entry("iron", 7_500.0),
+            Map.entry("silver", 15_000.0),
+            Map.entry("gold", 37_500.0),
+            Map.entry("netherite", 112_500.0),
+            Map.entry("lowMagisteel", 150_000.0),
+            Map.entry("highMagisteel", 225_000.0),
+            Map.entry("pureMagisteel", 300_000.0),
+            Map.entry("mithril", 450_000.0),
+            Map.entry("orichalcum", 750_000.0),
+            Map.entry("adamantite", 1_500_000.0),
             Map.entry("hihiirokane", 0.0));
 
     private TierCaptureConfigGameTests() {

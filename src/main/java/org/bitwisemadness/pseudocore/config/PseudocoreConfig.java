@@ -36,46 +36,58 @@ public final class PseudocoreConfig {
      *
      * <p>The caps follow Tensura's own EP progression, anchored to its
      * {@code entity_existence} datapack (EP = aura + magicule; unconfigured mobs
-     * such as cows sit at the 100 EP constructor floor): copper takes slimes and
-     * goblins (~1k), iron takes orcs (~3-6k), silver lizardmen and lesser
-     * daemons (~8-9k), netherite greater daemons (~70k), the magisteel ladder
-     * spans orc lords through arch daemons and ifrit (~90-150k), mithril takes
-     * an orc disaster (~250k), and adamantite the top named bosses (~1M).
-     * Hihi'irokane is uncapped: the cap of caps must not be the thing that says
-     * no. Between anchors the values interpolate.</p>
+     * such as cows sit at the 100 EP constructor floor) and rebased at x1.5, so
+     * every tier clears the rank it names with headroom rather than sitting
+     * exactly on its EP: copper takes slimes and goblins (~1k), iron takes orcs
+     * (~3-6k), silver lizardmen and lesser daemons (~8-9k), netherite greater
+     * daemons (~70k), the magisteel ladder spans orc lords through arch daemons
+     * and ifrit (~90-150k), mithril takes an orc disaster (~250k), and
+     * adamantite the top named bosses (~1M). Hihi'irokane, the last tier, is
+     * uncapped: the cap of caps must not be the thing that says no. Between
+     * anchors the values interpolate.</p>
      */
     private static final List<Tier> TIERS = List.of(
-            new Tier("copper", 1_000),
-            new Tier("iron", 5_000),
-            new Tier("silver", 10_000),
-            new Tier("gold", 25_000),
-            new Tier("netherite", 75_000),
-            new Tier("lowMagisteel", 100_000),
-            new Tier("highMagisteel", 150_000),
-            new Tier("pureMagisteel", 200_000),
-            new Tier("mithril", 300_000),
-            new Tier("orichalcum", 500_000),
-            new Tier("adamantite", 1_000_000),
+            new Tier("copper", 1_500),
+            new Tier("iron", 7_500),
+            new Tier("silver", 15_000),
+            new Tier("gold", 37_500),
+            new Tier("netherite", 112_500),
+            new Tier("lowMagisteel", 150_000),
+            new Tier("highMagisteel", 225_000),
+            new Tier("pureMagisteel", 300_000),
+            new Tier("mithril", 450_000),
+            new Tier("orichalcum", 750_000),
+            new Tier("adamantite", 1_500_000),
             new Tier("hihiirokane", 0));
 
     /** One tier's config key and default EP cap. */
     private record Tier(String key, double defaultMaxEP) {
     }
 
-    /** One dragon tier's config key and default growth-stage cap. */
-    private record DragonTier(String key, int defaultMaxStage) {
+    /**
+     * One dragon tier's config key, default growth-stage cap, and default EP
+     * cap.
+     *
+     * <p>The EP default is 1.5x that growth stage's end-of-row EP from Tensura's
+     * progression, mirroring the beast line's rebasing - so a tier accepts the
+     * dragons its stage band was built for without sitting exactly on their EP.
+     * The netherite tier is the line's last and, like hihi'irokane on the beast
+     * line, uncapped: the cap of caps must not be the thing that says no.</p>
+     */
+    private record DragonTier(String key, int defaultMaxStage, double defaultMaxEP) {
     }
 
     /**
      * The five dragon tiers, in ascending order. Stage defaults follow the tier
-     * ladder: copper 1 through netherite 5.
+     * ladder: copper 1 through netherite 5. EP defaults are per-tier - see
+     * {@link DragonTier}.
      */
     private static final List<DragonTier> DRAGON_TIERS = List.of(
-            new DragonTier("copper", 1),
-            new DragonTier("iron", 2),
-            new DragonTier("silver", 3),
-            new DragonTier("gold", 4),
-            new DragonTier("netherite", 5));
+            new DragonTier("copper", 1, 150_000),
+            new DragonTier("iron", 2, 300_000),
+            new DragonTier("silver", 3, 525_000),
+            new DragonTier("gold", 4, 825_000),
+            new DragonTier("netherite", 5, 0));
 
     /** The tier keys, derived once for the item-to-tier lookup. */
     private static final Set<String> TIER_KEYS =
@@ -412,9 +424,12 @@ public final class PseudocoreConfig {
                 builder.push(tier.key());
                 ModConfigSpec.DoubleValue maxEP = builder
                         .comment(
-                                "The highest EP a captured dragon may have. 0 disables the cap.",
-                                "Only enforceable while Tensura's integration is active.")
-                        .defineInRange("maxEP", 0.0D, 0.0D, Double.MAX_VALUE);
+                                "The highest EP a captured dragon may have. 0 disables the cap -",
+                                "the default for the netherite tier, the line's cap of caps. The",
+                                "rest default to 1.5x their growth stage's end-of-row EP from",
+                                "Tensura's progression. Only enforceable while Tensura's",
+                                "integration is active.")
+                        .defineInRange("maxEP", tier.defaultMaxEP(), 0.0D, Double.MAX_VALUE);
                 ModConfigSpec.BooleanValue tamed = builder
                         .comment(
                                 "Whether vanilla-tamed dragons may be captured by this tier. The",
