@@ -87,3 +87,13 @@ config="pseudocore.client.mixins.json"
     type="optional"
     ordering="AFTER"
     side="BOTH"
+
+# Mob Info Common - required. The shared variant-name and analysis-gating library:
+# the Race line's variant names and the tooltip's analysis gating both read it.
+# Ships as its own mod in the pack.
+[[dependencies.pseudocore]]
+    modId="mob_info_common"
+    type="required"
+    versionRange="[${mob_info_common_version},)"
+    ordering="AFTER"
+    side="BOTH"

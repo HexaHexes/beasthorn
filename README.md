@@ -52,14 +52,21 @@ A filled pseudocore always shows its contents, in this order:
 |---|---|
 | Name | only if the mob has a custom name |
 | Race | always -- the mob's variant, then its type |
-| Owner | only if the mob has an owner |
+| Owner | only if the mob has an owner (a Tensura-recorded owner needs Tensura analysis - see below) |
 | Health | always |
-| EP | only if Tensura is loaded and the mob has EP |
+| EP | only if Tensura is loaded, the mob has EP, and you are entitled to Tensura's analysis |
 
 Variants read naturally -- *Red Fang Direwolf*, *Emerald Fire Dragon*,
 *Black Hippogryph* -- covering Ice and Fire, Tensura, Mobs of Mythology and Mysticism.
 An empty pseudocore shows a hint instead, together with the capture caps its tier
 enforces (see the tier tables below).
+
+While Tensura is installed, the EP line and the Tensura-recorded owner follow
+Tensura's own **analysis rules**: a holder whose analysis cannot reach a mob's
+EP reads it blurred the same way Tensura's own overlay blurs it, and a holder
+with no analysis at all sees neither line. Vanilla-tamed owners are never
+hidden, and name, race and health are always shown. This can be switched off in
+`config/pseudocore-common.toml` (`respectAnalysisGating`).
 
 ## Appearance
 
@@ -154,6 +161,7 @@ in `config/pseudocore-common.toml`:
 |---|---|---|
 | `tensuraIntegration` | on | No EP line, no Tensura ownership read or transfer, no Tensura variant names, and the crystal recipes give way to the gem ones |
 | `iceAndFireIntegration` | on | The dragon pseudocores stop capturing, the Dragon Horn keeps IaF's own tooltip and rarity, its release no longer transfers ownership, and its recipe is no longer overridden (the dragon recipes are keyed to Ice and Fire being installed, so they remain) |
+| `respectAnalysisGating` | on | The EP line and the Tensura-recorded owner show to everyone, with no blur; without it they follow Tensura's analysis rules |
 
 The switch is honoured in code and in data packs alike, so it also works on a
 server whose modpack still has the mod installed. The entity blacklist lives in
@@ -169,10 +177,13 @@ Every tier also sits in its own **Pseudocore** creative tab.
 | | Mod | Why |
 |---|---|---|
 | **Required** | Minecraft 1.21.1 + NeoForge 21.1+ | Platform |
+| **Required** | Mob Info Common | Shared variant-name and analysis-gating logic (ships with this mod's packs) |
 | Optional | [Ice and Fire CE](https://www.curseforge.com/minecraft/mc-mods/iceandfire-ce) | The dragon line and its capture rules, Dragon Horn ownership hand-off, and Ice and Fire variant names |
-| Optional | Tensura: Reincarnated | EP tooltip, Tensura ownership fields, Tensura variant names |
-| Optional | Mobs of Mythology | drake and sporeling variant names |
-| Optional | Mysticism | okami variant names |
+| Optional | Tensura: Reincarnated | EP tooltip, Tensura ownership fields, Tensura variant names, and the analysis rules the tooltip gates by |
+
+Variant names for **Mobs of Mythology** (drake, sporeling) and **Mysticism**
+(okami) come through Mob Info Common, so neither mod needs to be installed for
+Pseudocore to load -- each is read only when present.
 
 **Pseudocore runs standalone** -- every integration above is independent. Without
 one, the item still works and just omits that mod's names or extras.

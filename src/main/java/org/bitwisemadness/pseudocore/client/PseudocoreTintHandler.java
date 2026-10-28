@@ -12,7 +12,7 @@ import org.bitwisemadness.pseudocore.item.component.ContainedMobComponent;
 import org.bitwisemadness.pseudocore.registry.ModDataComponents;
 import org.bitwisemadness.pseudocore.util.DragonTints;
 import org.bitwisemadness.pseudocore.util.IafHornAccess;
-import org.bitwisemadness.pseudocore.util.VariantHelper;
+import org.bitwisemadness.mobinfocommon.variant.VariantHelper;
 
 import java.util.Map;
 import java.util.UUID;
@@ -141,7 +141,8 @@ public final class PseudocoreTintHandler {
                     PseudocoreConfig.dragonTintVariantMode());
         }
 
-        VariantHelper.Variant variant = VariantHelper.variantOf(type, comp.entityData());
+        VariantHelper.Variant variant = VariantHelper.variantOf(type, comp.entityData(),
+                org.bitwisemadness.pseudocore.util.TensuraBridge::isLoaded);
         if (variant != null) {
             String key = type.getPath() + ":" + variant.text().toLowerCase(java.util.Locale.ROOT);
             Integer curated = CURATED_ORB_COLORS.get(key);

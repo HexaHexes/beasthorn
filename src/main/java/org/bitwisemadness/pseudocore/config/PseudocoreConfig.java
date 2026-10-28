@@ -140,6 +140,20 @@ public final class PseudocoreConfig {
     }
 
     /**
+     * True when the filled-horn tooltip must honour Tensura's analysis rules -
+     * EP and the Tensura-recorded owner gated behind the viewer's analysis,
+     * with EP blurring beyond reach exactly as Tensura's own overlay blurs it.
+     *
+     * <p>Read through the same fail-open lens as the integration switches: an
+     * unreadable or not-yet-loaded config behaves as the shipped default
+     * ({@code true}), so the gate never opens by accident either - the default
+     * is the gated behaviour, matching Tensura Jade's own toggle.</p>
+     */
+    public static boolean respectAnalysisGatingEnabled() {
+        return integrationEnabled(INTEGRATIONS.respectAnalysisGating);
+    }
+
+    /**
      * True when Dragon Pseudocores tint by the dragon's <b>variant</b> rather
      * than its element (#51).
      *
@@ -211,6 +225,7 @@ public final class PseudocoreConfig {
     public static final class Integrations {
         public final ModConfigSpec.BooleanValue tensuraEnabled;
         public final ModConfigSpec.BooleanValue iceAndFireEnabled;
+        public final ModConfigSpec.BooleanValue respectAnalysisGating;
         public final ModConfigSpec.ConfigValue<String> dragonTintMode;
 
         public Integrations(ModConfigSpec.Builder builder) {
@@ -234,6 +249,22 @@ public final class PseudocoreConfig {
                             "no longer transfers ownership, and none of the IaF-conditional",
                             "recipes exist.")
                     .define("iceAndFireIntegration", true);
+            respectAnalysisGating = builder
+                    .comment(
+                            "Whether the filled-horn tooltip honours Tensura's analysis rules.",
+                            "",
+                            "On (default): a holder without Tensura analysis sees no EP line",
+                            "and no Tensura-recorded owner, and EP beyond the holder's grasp",
+                            "blurs the same way Tensura's own analysis blurs it. Vanilla and",
+                            "Redomesticate owners are never gated - they are not Tensura's",
+                            "information.",
+                            "",
+                            "Off: the tooltip shows every value to everyone. Name, race and",
+                            "health are never gated either way.",
+                            "",
+                            "Only meaningful while Tensura is installed and its integration is",
+                            "on; without both, there is no Tensura information to gate.")
+                    .define("respectAnalysisGating", true);
             dragonTintMode = builder
                     .comment(
                             "How a Dragon Pseudocore's orbs are tinted by the dragon it holds.",

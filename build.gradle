@@ -40,6 +40,21 @@ repositories {
         content { includeGroup("curse.maven") }
     }
     mavenCentral()
+
+    // mob-info-common, from the org's GitHub Packages registry. Reads always
+    // require auth, and GitHub answers 404 (not 401) when it is missing, so an
+    // unauthenticated build fails with a message that looks like a mistyped
+    // coordinate. CI injects the PACKAGE_READ_TOKEN secret as GITHUB_TOKEN on
+    // the Gradle steps only; locally supply gpr.user / gpr.key in
+    // ~/.gradle/gradle.properties.
+    maven {
+        name = 'GitHubPackages'
+        url = uri('https://maven.pkg.github.com/HexaHexes/mob-info-common')
+        credentials {
+            username = System.getenv('GITHUB_ACTOR') ?: project.findProperty('gpr.user')
+            password = System.getenv('GITHUB_TOKEN') ?: project.findProperty('gpr.key')
+        }
+    }
 }
 
 base {
@@ -120,19 +135,27 @@ dependencies {
     // Tensura + ManasCore: compile against the real API (EP / ownership), but
     // keep them OFF the published POM and off the required-mod list so the addon
     // still loads when Tensura is absent. All Tensura-touching code is isolated
-    // behind a ModList gate at runtime.
+    // behind a ModList gate at runtime. The pin is 2.0.1.3 - the version the
+    // shared mob-info library and Tensura Jade ship against, so all three
+    // compile against one jar; bump deliberately, never implicitly.
     // -------------------------------------------------------------------------
-    compileOnly "curse.maven:tensura-reincarnated-643695:8098859"
+    compileOnly "curse.maven:tensura-reincarnated-643695:8793360" // tensura-neoforge-2.0.1.3
     compileOnly "curse.maven:manascore-619025:8022425"
     // ManasCore's main jar nests its sub-modules under META-INF/jars; the build
     // extracts them so javac sees the module APIs (StorageHolder). Derived from
     // the resolved Maven artifact - nothing is committed.
     compileOnly manascoreModuleJars
 
+    // mob-info-common: the shared variant-name and analysis-gating logic, a
+    // required mod (see neoforge.mods.toml) resolved from the org's GitHub
+    // Packages registry. Never packaged - the library ships as its own mod.
+    compileOnly "org.bitwisemadness.mobinfocommon:mob_info_common:${mob_info_common_version}"
+    runtimeOnly "org.bitwisemadness.mobinfocommon:mob_info_common:${mob_info_common_version}"
+
     manascoreModules 'curse.maven:manascore-619025:8022425'
 
     // Run-time classpath for dev runs ONLY (runClient / runServer). Not published.
-    localRuntime "curse.maven:tensura-reincarnated-643695:8098859"
+    localRuntime "curse.maven:tensura-reincarnated-643695:8793360" // tensura-neoforge-2.0.1.3
     localRuntime "curse.maven:manascore-619025:8022425"
     // Tensura's own required libraries (only needed for dev runs).
     localRuntime "curse.maven:architectury-api-419699:5786327"
@@ -161,14 +184,10 @@ dependencies {
     compileOnly 'curse.maven:uranus-1010827:8587525' // uranus-2.4.1-bugfix
 
     // -------------------------------------------------------------------------
-    // Mobs of Mythology + Mysticism: referenced ONLY for the variant names shown
-    // on the Race line. Local jars rather than CurseMaven, so the build sees the
-    // exact versions this pack runs. Kept off dev runs as well: their entity ids
-    // cannot appear in stored NBT unless the mods are installed, so there is
-    // nothing for runClient to exercise.
+    // Mobs of Mythology + Mysticism are no longer compiled against here at all:
+    // their variant names moved into the shared mob-info library, which owns
+    // both access classes and gates them itself.
     // -------------------------------------------------------------------------
-    compileOnly 'curse.maven:mobs-of-mythology-699989:8269965' // mobs_of_mythology-3.0.0
-    compileOnly 'curse.maven:mysticism-1148149:8980686' // mysticism-2.2.1
 
     // Lightman's Currency. Referenced ONLY by the game tests that prove a horn listed
     // for sale reaches the buyer with its captured mob intact - main never touches it.
@@ -201,6 +220,7 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
             mod_name               : mod_name,
             mod_license            : mod_license,
             mod_version            : mod_version,
+            mob_info_common_version: mob_info_common_version,
     ]
     inputs.properties replaceProperties
     expand replaceProperties
