@@ -14,6 +14,7 @@ import net.neoforged.neoforge.client.event.RegisterShadersEvent;
 import org.bitwisemadness.pseudocore.Pseudocore;
 import org.bitwisemadness.pseudocore.registry.ModDataComponents;
 import org.bitwisemadness.pseudocore.registry.ModItems;
+import org.bitwisemadness.pseudocore.util.IafHornAccess;
 
 import java.io.IOException;
 
@@ -47,12 +48,17 @@ public final class PseudocoreClientEvents {
 
     /**
      * Registers the item-model predicate behind the empty/filled orb swap (#53):
-     * {@code pseudocore:filled} reads 1 while the stack carries a contained mob,
+     * {@code pseudocore:filled} reads 1 while the stack holds a captured mob,
      * so the base model's override picks the glossy {@code _filled} twin; an
      * empty horn reads 0 and keeps the dull empty art. Vanilla's
      * {@link ItemProperties} is the only registration path (NeoForge ships no
      * mod-bus event for item properties), enqueued so it runs off the event
      * thread before the first model render.
+     *
+     * <p>Both storage formats count (#65): the beast line writes
+     * {@code CONTAINED_MOB}, while a dragon core keeps its capture in Ice and
+     * Fire's horn component, so asking only the mod's own component left every
+     * captured dragon rendering the empty orb art.</p>
      */
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
@@ -61,7 +67,8 @@ public final class PseudocoreClientEvents {
                     ResourceLocation.fromNamespaceAndPath(Pseudocore.MOD_ID, "filled");
             for (Item item : ModItems.all()) {
                 ItemProperties.register(item, filled, (stack, level, entity, seed) ->
-                        stack.has(ModDataComponents.CONTAINED_MOB.get()) ? 1.0F : 0.0F);
+                        stack.has(ModDataComponents.CONTAINED_MOB.get())
+                                || IafHornAccess.storedDragonType(stack) != null ? 1.0F : 0.0F);
             }
         });
     }
