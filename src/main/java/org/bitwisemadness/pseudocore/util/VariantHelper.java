@@ -65,15 +65,6 @@ public final class VariantHelper {
             "Black",         // id 6 -> DRAKE_7
     };
 
-    /**
-     * How long a word has to be before it counts as naming the species.
-     *
-     * <p>Four. Short enough that {@code wolf} still retires the species from a
-     * direwolf's variant, long enough that {@code age} does not retire it from
-     * a villager by turning up inside the word.</p>
-     */
-    private static final int MIN_NAMING_WORD = 4;
-
     private VariantHelper() {
     }
 
@@ -150,28 +141,14 @@ public final class VariantHelper {
      * the species name - {@code Direwolf} on a direwolf - retires it too.
      * </p>
      *
-     * <p>Compared word by word in both directions, so whichever side carries
-     * the shared word does the retiring, and only for words of
-     * {@link #MIN_NAMING_WORD} letters or more. The threshold is the whole
-     * reason this is safe: it is what lets {@code wolf} match inside
-     * {@code direwolf} while {@code age} stays out of {@code villager}, which
-     * would otherwise match by accident and strip a race from a mob that never
-     * named itself.</p>
+     * <p>The word matching moved to {@link SpeciesWords}, which is pure Java and
+     * so junit-testable - this class cannot be, because its signatures mention
+     * Minecraft types that the junit classpath does not carry. The rule itself
+     * is documented there; what matters at this call site is only that a
+     * variant naming its own species drops the race word (#69).</p>
      */
     public static boolean alreadyNamesMob(String variantText, String raceText) {
-        if (variantText == null || raceText == null) return false;
-        return anyWordAppearsIn(variantText, raceText)
-                || anyWordAppearsIn(raceText, variantText);
-    }
-
-    /** Whether any of {@code words} occurs inside {@code text}, as a fragment. */
-    private static boolean anyWordAppearsIn(String words, String text) {
-        String haystack = text.toLowerCase(Locale.ROOT);
-        for (String word : words.split("\\s+")) {
-            if (word.length() < MIN_NAMING_WORD) continue;
-            if (haystack.contains(word.toLowerCase(Locale.ROOT))) return true;
-        }
-        return false;
+        return SpeciesWords.alreadyNamesMob(variantText, raceText);
     }
 
     /**
