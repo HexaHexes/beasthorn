@@ -10,7 +10,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.ItemStack;
+import org.bitwisemadness.pseudocore.config.PseudocoreConfig;
 
+import java.text.NumberFormat;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -127,11 +130,63 @@ public final class TooltipHelper {
      * <p>These replace IaF's method entirely rather than sitting alongside it,
      * because IaF emits nothing at all for an empty horn — which left the
      * Dragon Horn as the only item in the pack with a blank tooltip.</p>
+     *
+     * <p>Dragon pseudocores append the caps their tier enforces (#40): the
+     * growth-stage cap whenever the item resolves a dragon tier key, and the
+     * EP cap while Tensura's integration is active - the same gate the capture
+     * path consults, so the tooltip cannot advertise a limit that is not being
+     * enforced. IaF's own horn keeps just the two hint lines.</p>
      */
-    public static void addEmptyDragonLines(List<Component> tooltip) {
+    public static void addEmptyDragonLines(List<Component> tooltip, ItemStack stack) {
         tooltip.add(Component.literal("Empty").withStyle(ChatFormatting.DARK_GRAY));
         tooltip.add(Component.literal("Right-click a dragon to capture it.")
                 .withStyle(ChatFormatting.DARK_GRAY));
+
+        String tierKey = PseudocoreConfig.dragonTierKey(stack.getItem());
+        if (!tierKey.isEmpty()) {
+            addCapLines(tooltip, () -> PseudocoreConfig.COMMON.dragonTierLimits(tierKey).maxStage(),
+                    () -> PseudocoreConfig.COMMON.dragonTierLimits(tierKey).maxEP(),
+                    "pseudocore.tooltip.stage_cap");
+        }
+    }
+
+    /**
+     * The EP cap a beast tier enforces, appended to its own empty tooltip (#40).
+     * Shown only while Tensura's integration is active - EP only exists then -
+     * and only when the cap is non-zero, so the uncapped hihi'irokane tier
+     * keeps a clean tooltip rather than advertising "unlimited".
+     */
+    public static void addBeastCapLines(List<Component> tooltip, net.minecraft.world.item.Item item) {
+        addCapLines(tooltip, () -> 0, () -> PseudocoreConfig.tierLimits(item).maxEP(), null);
+    }
+
+    /**
+     * One shape for both lines: a stage cap (dragon tiers only - {@code null}
+     * suppresses the line), an EP cap, and the shared rules around them.
+     *
+     * <p>The limits read the SERVER config, which a remote client holds only
+     * once NeoForge has synced it; a tooltip can render in that gap. Caps are
+     * cosmetic, so an unreadable config skips the lines rather than throwing
+     * out of a tooltip render.</p>
+     */
+    private static void addCapLines(
+            List<Component> tooltip, java.util.function.IntSupplier stageCap,
+            java.util.function.DoubleSupplier epCap, String stageKey) {
+        try {
+            int stage = stageCap.getAsInt();
+            double ep = epCap.getAsDouble();
+
+            if (stageKey != null && stage > 0) {
+                tooltip.add(Component.translatable(stageKey, stage).withStyle(ChatFormatting.GRAY));
+            }
+            if (TensuraBridge.isLoaded() && ep > 0.0D) {
+                tooltip.add(Component.translatable("pseudocore.tooltip.ep_cap",
+                                NumberFormat.getIntegerInstance().format(ep))
+                        .withStyle(ChatFormatting.GRAY));
+            }
+        } catch (IllegalStateException configNotLoadedYet) {
+            // Fine: no caps shown until the client can see them.
+        }
     }
 
     /** IaF's AgeTicks bands: 25, 50, 75 and 100 days old. */

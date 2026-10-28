@@ -172,8 +172,9 @@ public abstract class DragonHornItemMixin {
         if (horn == null) {
             // Empty horn. IaF emits nothing here, so take it over rather than
             // standing aside - which is what left the Dragon Horn as the only
-            // item in the pack with a blank tooltip.
-            TooltipHelper.addEmptyDragonLines(tooltip);
+            // item in the pack with a blank tooltip. Dragon pseudocores append
+            // the caps their tier enforces.
+            TooltipHelper.addEmptyDragonLines(tooltip, stack);
             cir.cancel();
             return;
         }

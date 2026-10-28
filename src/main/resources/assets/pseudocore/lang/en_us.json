@@ -22,6 +22,8 @@
   "pseudocore.message.tamed": "This tier cannot capture tamed creatures.",
   "pseudocore.message.named": "This tier cannot capture named creatures.",
   "pseudocore.message.too_grown": "The %s has grown beyond this pseudocore's stage.",
+  "pseudocore.tooltip.ep_cap": "Captures mobs up to %s EP",
+  "pseudocore.tooltip.stage_cap": "Captures dragons up to stage %s",
   "pseudocore.message.busy": "This creature cannot be captured right now.",
   "pseudocore.message.too_powerful": "The %s is too powerful to be captured by this pseudocore."
 }
