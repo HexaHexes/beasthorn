@@ -23,7 +23,9 @@
   "pseudocore.message.named": "This tier cannot capture named creatures.",
   "pseudocore.message.too_grown": "The %s has grown beyond this pseudocore's stage.",
   "pseudocore.tooltip.ep_cap": "Captures mobs up to %s EP",
-  "pseudocore.tooltip.stage_cap": "Captures dragons up to stage %s",
+  "pseudocore.tooltip.ep_cap_dragon": "Captures Dragons up to %s EP",
+  "pseudocore.tooltip.no_ep_restriction": "Has no EP restrictions",
+  "pseudocore.tooltip.stage_cap": "Captures Dragons up to Stage %s",
   "pseudocore.message.busy": "This creature cannot be captured right now.",
   "pseudocore.message.too_powerful": "The %s is too powerful to be captured by this pseudocore."
 }
