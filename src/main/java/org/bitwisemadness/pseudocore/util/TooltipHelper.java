@@ -143,7 +143,8 @@ public final class TooltipHelper {
      * growth-stage cap whenever the item resolves a dragon tier key, and the
      * EP cap while Tensura's integration is active - the same gate the capture
      * path consults, so the tooltip cannot advertise a limit that is not being
-     * enforced. IaF's own horn keeps just the two hint lines.</p>
+     * enforced. A dragon tier with no EP cap says so rather than hiding the
+     * line (#49). IaF's own horn keeps just the two hint lines.</p>
      */
     public static void addEmptyDragonLines(List<Component> tooltip, ItemStack stack) {
         tooltip.add(Component.literal("Empty").withStyle(ChatFormatting.DARK_GRAY));
@@ -154,23 +155,28 @@ public final class TooltipHelper {
         if (!tierKey.isEmpty()) {
             addCapLines(tooltip, () -> PseudocoreConfig.COMMON.dragonTierLimits(tierKey).maxStage(),
                     () -> PseudocoreConfig.COMMON.dragonTierLimits(tierKey).maxEP(),
-                    "pseudocore.tooltip.stage_cap");
+                    "pseudocore.tooltip.stage_cap", "pseudocore.tooltip.ep_cap_dragon");
         }
     }
 
     /**
      * The EP cap a beast tier enforces, appended to its own empty tooltip (#40).
-     * Shown only while Tensura's integration is active - EP only exists then -
-     * and only when the cap is non-zero, so the uncapped hihi'irokane tier
-     * keeps a clean tooltip rather than advertising "unlimited".
+     * Shown only while Tensura's integration is active - EP only exists then.
+     * A tier with no EP cap says it has no EP restrictions rather than hiding
+     * the line (#49).
      */
     public static void addBeastCapLines(List<Component> tooltip, net.minecraft.world.item.Item item) {
-        addCapLines(tooltip, () -> 0, () -> PseudocoreConfig.tierLimits(item).maxEP(), null);
+        addCapLines(tooltip, () -> 0, () -> PseudocoreConfig.tierLimits(item).maxEP(),
+                null, "pseudocore.tooltip.ep_cap");
     }
 
     /**
      * One shape for both lines: a stage cap (dragon tiers only - {@code null}
      * suppresses the line), an EP cap, and the shared rules around them.
+     *
+     * <p>The stage line shows only while a cap is set ({@code maxStage == 0}
+     * stays hidden); the EP line always shows while Tensura is active, saying
+     * "Has no EP restrictions" when the cap is 0 (#49).
      *
      * <p>The limits read the SERVER config, which a remote client holds only
      * once NeoForge has synced it; a tooltip can render in that gap. Caps are
@@ -179,7 +185,7 @@ public final class TooltipHelper {
      */
     private static void addCapLines(
             List<Component> tooltip, java.util.function.IntSupplier stageCap,
-            java.util.function.DoubleSupplier epCap, String stageKey) {
+            java.util.function.DoubleSupplier epCap, String stageKey, String epKey) {
         try {
             int stage = stageCap.getAsInt();
             double ep = epCap.getAsDouble();
@@ -187,10 +193,15 @@ public final class TooltipHelper {
             if (stageKey != null && stage > 0) {
                 tooltip.add(Component.translatable(stageKey, stage).withStyle(ChatFormatting.GRAY));
             }
-            if (TensuraBridge.isLoaded() && ep > 0.0D) {
-                tooltip.add(Component.translatable("pseudocore.tooltip.ep_cap",
-                                NumberFormat.getIntegerInstance().format(ep))
-                        .withStyle(ChatFormatting.GRAY));
+            if (TensuraBridge.isLoaded()) {
+                if (ep > 0.0D) {
+                    tooltip.add(Component.translatable(epKey,
+                                    NumberFormat.getIntegerInstance().format(ep))
+                            .withStyle(ChatFormatting.GRAY));
+                } else {
+                    tooltip.add(Component.translatable("pseudocore.tooltip.no_ep_restriction")
+                            .withStyle(ChatFormatting.GRAY));
+                }
             }
         } catch (IllegalStateException configNotLoadedYet) {
             // Fine: no caps shown until the client can see them.
