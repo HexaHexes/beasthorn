@@ -85,8 +85,10 @@ public class DragonPseudocoreItem extends DragonHornItem {
         if (limits.maxEP() > 0.0D) {
             double ep = TensuraBridge.readEp(target).orElse(0.0D);
             if (ep > limits.maxEP()) {
-                return refuse(player, Component.translatable("pseudocore.message.too_powerful",
-                        target.getType().getDescription()));
+                // Same wording as the beast line's EP refusal (#126): "too
+                // smart" plus this tier's name.
+                return refuse(player, Component.translatable("pseudocore.message.too_smart",
+                        target.getType().getDescription(), stack.getHoverName()));
             }
         }
         if (limits.maxStage() > 0 && dragon.getDragonStage() > limits.maxStage()) {
