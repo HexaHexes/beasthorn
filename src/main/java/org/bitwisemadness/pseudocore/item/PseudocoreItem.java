@@ -117,9 +117,10 @@ public class PseudocoreItem extends Item {
             // getDescription() is Component.translatable of the entity's own
             // description id, so the client resolves the name against whichever
             // mod's lang file defines the mob: "The Fire Dragon is too
-            // powerful..." rather than "The fire_dragon is...".
+            // powerful..." rather than "The fire_dragon is...". The tier names
+            // itself the same way too_grown does (#126).
             return refuse(player, Component.translatable("pseudocore.message.too_powerful",
-                    target.getType().getDescription()));
+                    target.getType().getDescription(), stack.getHoverName()));
         }
 
         // Per-tier capture limits - server-side like the blacklist, since they
@@ -143,8 +144,11 @@ public class PseudocoreItem extends Item {
         if (limits.maxEP() > 0.0D) {
             double ep = TensuraBridge.readEp(target).orElse(0.0D);
             if (ep > limits.maxEP()) {
-                return refuse(player, Component.translatable("pseudocore.message.too_powerful",
-                        target.getType().getDescription()));
+                // "too smart" + the tier's own name (#126): the EP axis reads
+                // as capability on a named Tensura mob, and the player deserves
+                // to know WHICH core refused.
+                return refuse(player, Component.translatable("pseudocore.message.too_smart",
+                        target.getType().getDescription(), stack.getHoverName()));
             }
         }
 

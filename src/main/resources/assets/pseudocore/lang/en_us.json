@@ -34,5 +34,6 @@
   "pack.pseudocore.metallic.name": "Pseudocore: Metallic Bodies",
   "pack.pseudocore.metallic.description": "More metallic-looking Pseudocore body textures - harder highlights, deeper shadows.",
   "pseudocore.message.busy": "This creature cannot be captured right now.",
-  "pseudocore.message.too_powerful": "The %s is too powerful to be captured by this pseudocore."
+  "pseudocore.message.too_powerful": "The %s is too powerful to be captured by the %s.",
+  "pseudocore.message.too_smart": "The %s is too smart to be captured by the %s."
 }
