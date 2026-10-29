@@ -1,0 +1,28 @@
+{
+  "type": "pseudocore:core_upgrade",
+  "category": "misc",
+  "key": {
+    "I": {
+      "tag": "c:ingots/hihiirokane"
+    },
+    "C": {
+      "item": "pseudocore:adamantite_pseudocore"
+    }
+  },
+  "pattern": [
+    " I ",
+    "ICI",
+    " I "
+  ],
+  "result": {
+    "id": "pseudocore:hihiirokane_pseudocore",
+    "count": 1
+  },
+  "show_notification": true,
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "tensura"
+    }
+  ]
+}

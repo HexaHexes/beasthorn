@@ -11,6 +11,7 @@ import org.bitwisemadness.pseudocore.registry.ModCreativeTabs;
 import org.bitwisemadness.pseudocore.registry.ModDataComponents;
 import org.bitwisemadness.pseudocore.registry.ModGameRules;
 import org.bitwisemadness.pseudocore.registry.ModItems;
+import org.bitwisemadness.pseudocore.registry.ModRecipes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +24,7 @@ public final class Pseudocore {
         ModItems.ITEMS.register(modBus);
         ModDataComponents.DATA_COMPONENTS.register(modBus);
         ModConditions.CONDITION_CODECS.register(modBus);
+        ModRecipes.SERIALIZERS.register(modBus);
         ModCreativeTabs.CREATIVE_MODE_TABS.register(modBus);
 
         container.registerConfig(ModConfig.Type.SERVER, PseudocoreConfig.COMMON_SPEC);
