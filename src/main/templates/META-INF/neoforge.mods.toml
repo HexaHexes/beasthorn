@@ -29,6 +29,11 @@ Pseudocore - capture any mob with its full NBT data and trade it between players
 '''
 
 # The Pseudocore mixin config. Always present.
+[modproperties.${mod_id}]
+# Optional: background texture for this mod's Configured config screen (see the
+# In-game config editing section of README.md). Any existing texture works.
+configuredBackground = "minecraft:textures/block/stone.png"
+
 [[mixins]]
 config="pseudocore.mixins.json"
 
