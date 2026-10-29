@@ -73,29 +73,37 @@ public final class PseudocoreConfig {
     }
 
     /**
-     * One dragon tier's config key, default growth-stage cap, and default EP
-     * cap.
+     * One dragon tier's config key, default growth-stage cap, default EP cap,
+     * and default element binding (#112).
      *
      * <p>The EP default is 1.5x that growth stage's end-of-row EP from Tensura's
      * progression, mirroring the beast line's rebasing - so a tier accepts the
      * dragons its stage band was built for without sitting exactly on their EP.
      * The netherite tier is the line's last and, like hihi'irokane on the beast
-     * line, uncapped: the cap of caps must not be the thing that says no.</p>
+     * line, uncapped: the cap of caps must not be the thing that says no. The
+     * dragonsteel tiers sit beyond the ladder entirely - uncapped - and each
+     * binds to its own dragon element by default, which the config can open to
+     * {@code any}.</p>
      */
-    private record DragonTier(String key, int defaultMaxStage, double defaultMaxEP) {
+    private record DragonTier(String key, int defaultMaxStage, double defaultMaxEP,
+                              String defaultRequiredElement) {
     }
 
     /**
-     * The five dragon tiers, in ascending order. Stage defaults follow the tier
-     * ladder: copper 1 through netherite 5. EP defaults are per-tier - see
-     * {@link DragonTier}.
+     * The dragon tiers, in ascending order: the five metal tiers, then the
+     * three dragonsteel tiers (#112). Stage defaults follow the tier ladder
+     * for the metals: copper 1 through netherite 5; dragonsteel is uncapped.
+     * EP defaults are per-tier - see {@link DragonTier}.
      */
     private static final List<DragonTier> DRAGON_TIERS = List.of(
-            new DragonTier("copper", 1, 150_000),
-            new DragonTier("iron", 2, 300_000),
-            new DragonTier("silver", 3, 525_000),
-            new DragonTier("gold", 4, 825_000),
-            new DragonTier("netherite", 5, 0));
+            new DragonTier("copper", 1, 150_000, "any"),
+            new DragonTier("iron", 2, 300_000, "any"),
+            new DragonTier("silver", 3, 525_000, "any"),
+            new DragonTier("gold", 4, 825_000, "any"),
+            new DragonTier("netherite", 5, 0, "any"),
+            new DragonTier("fire_dragonsteel", 0, 0.0, "fire"),
+            new DragonTier("ice_dragonsteel", 0, 0.0, "ice"),
+            new DragonTier("lightning_dragonsteel", 0, 0.0, "lightning"));
 
     /** The tier keys, derived once for the item-to-tier lookup. */
     private static final Set<String> TIER_KEYS =
@@ -217,15 +225,22 @@ public final class PseudocoreConfig {
     }
 
     /**
-     * The config key of a dragon item's tier: {@code copper_dragon_pseudocore} ->
-     * {@code copper}. Empty for items that are not dragon tiers.
+     * The config key of a dragon item's tier: {@code copper_dragon_pseudocore}
+     * -> {@code copper}, {@code fire_dragonsteel_pseudocore} -> {@code
+     * fire_dragonsteel} (#112: the dragonsteel ids carry the element where the
+     * metal line carries the {@code _dragon_} infix, so both suffixes resolve).
+     * Empty for items that are not dragon tiers.
      */
     public static String dragonTierKey(Item item) {
         String path = BuiltInRegistries.ITEM.getKey(item).getPath();
-        if (!path.endsWith("_dragon_pseudocore")) {
+        String key;
+        if (path.endsWith("_dragon_pseudocore")) {
+            key = path.substring(0, path.length() - "_dragon_pseudocore".length());
+        } else if (path.endsWith("_dragonsteel_pseudocore")) {
+            key = path.substring(0, path.length() - "_pseudocore".length());
+        } else {
             return "";
         }
-        String key = path.substring(0, path.length() - "_dragon_pseudocore".length());
         return COMMON.dragonTier(key).isPresent() ? key : "";
     }
 
@@ -491,10 +506,17 @@ public final class PseudocoreConfig {
                         .comment(
                                 "The highest dragon growth stage (age in days / 25) this tier may",
                                 "capture. 0 disables the cap. Defaults follow the tier ladder:",
-                                "copper 1 through netherite 5.")
+                                "copper 1 through netherite 5; dragonsteel starts uncapped.")
                         .defineInRange("maxStage", tier.defaultMaxStage(), 0, Integer.MAX_VALUE);
+                ModConfigSpec.ConfigValue<String> requiredElement = builder
+                        .comment(
+                                "The dragon element this tier accepts: fire, ice, lightning, or",
+                                "any. Defaults to the tier's own element for the dragonsteel line",
+                                "and any for the metal line. Read case-insensitively.")
+                        .define("requiredElement", tier.defaultRequiredElement());
                 builder.pop();
-                dragonSections.put(tier.key(), new DragonTierSection(maxEP, tamed, named, maxStage));
+                dragonSections.put(tier.key(),
+                        new DragonTierSection(maxEP, tamed, named, maxStage, requiredElement));
             }
             builder.pop();
             dragonTiers = Collections.unmodifiableMap(dragonSections);
@@ -546,7 +568,8 @@ public final class PseudocoreConfig {
             DragonTierSection section = dragonTiers.get(key);
             return section == null ? DragonTierLimits.PERMISSIVE
                     : new DragonTierLimits(section.maxEP.get(), section.allowTamedMobs.get(),
-                            section.allowTensuraNamed.get(), section.maxStage.get());
+                            section.allowTensuraNamed.get(), section.maxStage.get(),
+                            section.requiredElement.get());
         }
     }
 
@@ -607,18 +630,21 @@ public final class PseudocoreConfig {
 
     /** The capture limits one dragon tier enforces, resolved at read time. */
     public static final class DragonTierLimits {
-        static final DragonTierLimits PERMISSIVE = new DragonTierLimits(0.0D, true, true, 0);
+        static final DragonTierLimits PERMISSIVE = new DragonTierLimits(0.0D, true, true, 0, "");
 
         private final double maxEP;
         private final boolean allowTamedMobs;
         private final boolean allowTensuraNamed;
         private final int maxStage;
+        private final String requiredElement;
 
-        DragonTierLimits(double maxEP, boolean allowTamedMobs, boolean allowTensuraNamed, int maxStage) {
+        DragonTierLimits(double maxEP, boolean allowTamedMobs, boolean allowTensuraNamed,
+                         int maxStage, String requiredElement) {
             this.maxEP = maxEP;
             this.allowTamedMobs = allowTamedMobs;
             this.allowTensuraNamed = allowTensuraNamed;
             this.maxStage = maxStage;
+            this.requiredElement = requiredElement;
         }
 
         /** Highest capturable EP; {@code 0} disables the cap. */
@@ -638,21 +664,32 @@ public final class PseudocoreConfig {
         public int maxStage() {
             return maxStage;
         }
+
+        /**
+         * The bound element, lowercased ({@code fire}/{@code ice}/
+         * {@code lightning}); empty or {@code any} binds nothing (#112).
+         */
+        public String requiredElement() {
+            return requiredElement;
+        }
     }
 
-    /** The four live config values of one dragon tier's section. */
+    /** The five live config values of one dragon tier's section. */
     public static final class DragonTierSection {
         public final ModConfigSpec.DoubleValue maxEP;
         public final ModConfigSpec.BooleanValue allowTamedMobs;
         public final ModConfigSpec.BooleanValue allowTensuraNamed;
         public final ModConfigSpec.IntValue maxStage;
+        public final ModConfigSpec.ConfigValue<String> requiredElement;
 
         DragonTierSection(ModConfigSpec.DoubleValue maxEP, ModConfigSpec.BooleanValue allowTamedMobs,
-                          ModConfigSpec.BooleanValue allowTensuraNamed, ModConfigSpec.IntValue maxStage) {
+                          ModConfigSpec.BooleanValue allowTensuraNamed, ModConfigSpec.IntValue maxStage,
+                          ModConfigSpec.ConfigValue<String> requiredElement) {
             this.maxEP = maxEP;
             this.allowTamedMobs = allowTamedMobs;
             this.allowTensuraNamed = allowTensuraNamed;
             this.maxStage = maxStage;
+            this.requiredElement = requiredElement;
         }
     }
 }

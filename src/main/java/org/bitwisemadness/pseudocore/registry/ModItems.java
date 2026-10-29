@@ -60,12 +60,15 @@ public final class ModItems {
     public static final List<DeferredItem<PseudocoreItem>> TENSURA_TIERS = registerTensuraTiers();
 
     /**
-     * The dragon tiers - one per metal, in ascending order, for capturing Ice and
-     * Fire CE dragons. Empty unless IaF is installed: without it there are no
-     * dragons to capture and the items would be dead entries. As with the other
-     * mod-supplied tiers, registration follows mod presence (configs do not exist
-     * yet when it is decided); the integration switch gates behaviour, and the
-     * recipes use the mod-presence condition so a registered tier stays craftable.
+     * The dragon tiers - one per metal, in ascending order, for capturing Ice
+     * and Fire CE dragons, plus the three dragonsteel tiers (#112), one per
+     * dragon element, appended after the metals so every existing index keeps
+     * its meaning. Empty unless IaF is installed: without it there are no
+     * dragons to capture and the items would be dead entries. As with the
+     * other mod-supplied tiers, registration follows mod presence (configs do
+     * not exist yet when it is decided); the integration switch gates
+     * behaviour, and the recipes use the mod-presence condition so a
+     * registered tier stays craftable.
      *
      * <p>Dragon pseudocores extend IaF's own DragonHornItem, so loading the item
      * class requires IaF. That is safe here for the same reason the Tensura
@@ -145,9 +148,14 @@ public final class ModItems {
         if (!iceAndFirePresent()) {
             return List.of();
         }
-        List<DeferredItem<DragonPseudocoreItem>> tiers = new ArrayList<>(5);
+        List<DeferredItem<DragonPseudocoreItem>> tiers = new ArrayList<>(8);
         for (String metal : List.of("copper", "iron", "silver", "gold", "netherite")) {
             tiers.add(ITEMS.register(metal + "_dragon_pseudocore", () -> new DragonPseudocoreItem()));
+        }
+        // The dragonsteel line (#112): one tier per dragon element, each
+        // element-gated by default through its config section.
+        for (String element : List.of("fire", "ice", "lightning")) {
+            tiers.add(ITEMS.register(element + "_dragonsteel_pseudocore", () -> new DragonPseudocoreItem()));
         }
         return List.copyOf(tiers);
     }

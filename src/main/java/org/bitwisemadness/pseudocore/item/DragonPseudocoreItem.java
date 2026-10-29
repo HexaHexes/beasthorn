@@ -63,6 +63,19 @@ public class DragonPseudocoreItem extends DragonHornItem {
                     stack, held.entityType(), held.entityData()));
         }
 
+        // The element binding (#112): fire dragonsteel takes fire dragons,
+        // ice takes ice, lightning takes lightning - each configurable per
+        // tier, "any" opening the tier. DragonType's name component is the
+        // element string, compared case-insensitively so the config never
+        // fights the spelling.
+        String required = limits.requiredElement();
+        if (!required.isEmpty() && !"any".equalsIgnoreCase(required)
+                && !required.equalsIgnoreCase(dragon.dragonType.name())) {
+            String display = Character.toUpperCase(required.charAt(0)) + required.substring(1);
+            return refuse(player, Component.translatable("pseudocore.message.wrong_element",
+                    stack.getHoverName(), display));
+        }
+
         if (!limits.allowTamedMobs() && dragon.isTame()) {
             return refuse(player, Component.translatable("pseudocore.message.tamed"));
         }
