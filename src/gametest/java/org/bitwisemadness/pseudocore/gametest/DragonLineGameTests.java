@@ -49,9 +49,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * The dragon line: five tiers of Ice and Fire horn, one recipe state at a time,
- * config sections defaulting to the stage ladder, and a stage cap that actually
- * refuses a grown dragon.
+ * The dragon line: the five metal tiers of Ice and Fire horn plus the three
+ * dragonsteel tiers (#112), recipe states, config sections defaulting to the
+ * stage ladder (and to element bindings on the dragonsteel line), and a stage
+ * cap that actually refuses a grown dragon.
  *
  * <p>The stage test grows a fire dragon to 75 days - stage 4 by IaF's own
  * banding, 75 days being where stage 4 starts - and requires the copper tier
@@ -160,6 +161,41 @@ public final class DragonLineGameTests {
 
         check(PseudocoreConfig.dragonTierKey(ModItems.IRON_PSEUDOCORE.get()).isEmpty(),
                 "beast items are not dragon tiers");
+
+        // The dragonsteel line (#112): uncapped like an endgame line should
+        // be, and bound to its own element by default.
+        String[][] dragonsteel = {
+                {"fire_dragonsteel", "fire"},
+                {"ice_dragonsteel", "ice"},
+                {"lightning_dragonsteel", "lightning"}};
+        for (String[] entry : dragonsteel) {
+            PseudocoreConfig.DragonTierSection section =
+                    PseudocoreConfig.COMMON.dragonTier(entry[0]).orElse(null);
+            check(section != null, "no dragon config section for tier " + entry[0]);
+            check(section.maxStage.get() == 0,
+                    entry[0] + " must default uncapped (maxStage 0), got " + section.maxStage.get());
+            check(section.maxEP.get() == 0.0D,
+                    entry[0] + " must default uncapped (maxEP 0), got " + section.maxEP.get());
+            check(entry[1].equalsIgnoreCase(section.requiredElement.get()),
+                    entry[0] + " must default to binding element " + entry[1] + ", got "
+                            + section.requiredElement.get());
+            check(section.allowTamedMobs.get() && section.allowTensuraNamed.get(),
+                    entry[0] + " must default permissive on the other axes");
+
+            PseudocoreConfig.DragonTierLimits limits =
+                    PseudocoreConfig.COMMON.dragonTierLimits(entry[0]);
+            check(limits.maxStage() == 0 && limits.maxEP() == 0.0D
+                            && entry[1].equalsIgnoreCase(limits.requiredElement()),
+                    entry[0] + "'s resolved limits must match its section");
+        }
+        if (ModItems.dragonTiersAvailable()) {
+            var fireCore = ModItems.DRAGON_TIERS.get(5).get();
+            check(PseudocoreConfig.dragonTierKey(fireCore).equals("fire_dragonsteel"),
+                    "fire_dragonsteel_pseudocore must resolve to its section key, got "
+                            + PseudocoreConfig.dragonTierKey(fireCore));
+            check(PseudocoreConfig.tierKey(fireCore).isEmpty(),
+                    "a dragon item must not resolve as a beast tier");
+        }
 
         helper.succeed();
     }
@@ -426,6 +462,110 @@ public final class DragonLineGameTests {
                 "a capture stopped by IaF's guard must not store the dragon");
         check(player.getMainHandItem().isEmpty(),
                 "the temporary hand-hold must be restored - the caller's hand state must survive");
+
+        helper.succeed();
+    }
+
+    /**
+     * The element binding (#112): a fire-bound dragonsteel core refuses an
+     * ice dragon with PASS and stores nothing - our gate, before IaF - and
+     * opening the tier to {@code any} hands the same pair to IaF's own
+     * ownership guard, which declines with CONSUME and stores nothing. The
+     * refusal-then-open pair through {@code IafHornAccess.tryCaptureDragon}
+     * is what pins both the config read and the delegation (#110) in one
+     * walk.
+     */
+    @GameTest(template = "test_area")
+    public static void elementBindingRefusesTheWrongDragon(GameTestHelper helper) {
+        if (!ModItems.dragonTiersAvailable()) {
+            helper.succeed();
+            return;
+        }
+        var player = helper.makeMockPlayer(GameType.SURVIVAL);
+        @SuppressWarnings("unchecked")
+        var iceDragon = (net.minecraft.world.entity.EntityType<DragonBaseEntity>) BuiltInRegistries.ENTITY_TYPE
+                .get(ResourceLocation.fromNamespaceAndPath("iceandfire", "ice_dragon"));
+        DragonBaseEntity dragon = helper.spawn(iceDragon, 1, 1, 1);
+        dragon.setAgeInDays(75);
+
+        Item fireCore = itemOrAir("pseudocore:fire_dragonsteel_pseudocore");
+        check(fireCore != Items.AIR, "the fire dragonsteel core must exist");
+        ItemStack stack = new ItemStack(fireCore);
+        InteractionResult refused = IafHornAccess.tryCaptureDragon(player, dragon, stack);
+        check(refused == InteractionResult.PASS,
+                "a fire-bound tier must refuse an ice dragon with PASS (our gate, before IaF), got "
+                        + refused);
+        check(IafHornAccess.read(stack) == null,
+                "a refused capture must not store the dragon");
+
+        var section = PseudocoreConfig.COMMON.dragonTier("fire_dragonsteel").orElseThrow();
+        section.requiredElement.set("any");
+        try {
+            InteractionResult opened = IafHornAccess.tryCaptureDragon(player, dragon, stack);
+            check(opened == InteractionResult.CONSUME,
+                    "with the binding opened, IaF's ownership guard must decline with CONSUME, got "
+                            + opened);
+            check(IafHornAccess.read(stack) == null,
+                    "a capture stopped by IaF's guard must not store the dragon");
+        } finally {
+            section.requiredElement.set("fire");
+        }
+
+        helper.succeed();
+    }
+
+    /**
+     * The dragonsteel recipe family (#112): each element tier ships both
+     * the crystal and the gem variant under the family's existing
+     * conditions, the loaded one matches the bone-corner / dragonsteel-edge
+     * / crystal-or-gem-centre ring, and the result is that tier's core.
+     */
+    @GameTest(template = "test_area")
+    public static void dragonsteelTiersHaveTheirRecipePair(GameTestHelper helper) {
+        if (!ModItems.dragonTiersAvailable()) {
+            helper.succeed();
+            return;
+        }
+        boolean tensura = ModList.get().isLoaded("tensura") && PseudocoreConfig.tensuraIntegrationEnabled();
+        RecipeManager recipes = helper.getLevel().getServer().getRecipeManager();
+
+        for (String element : List.of("fire", "ice", "lightning")) {
+            ResourceLocation crystalId = ResourceLocation.fromNamespaceAndPath(
+                    Pseudocore.MOD_ID, element + "_dragonsteel_pseudocore");
+            ResourceLocation gemId = ResourceLocation.fromNamespaceAndPath(
+                    Pseudocore.MOD_ID, element + "_dragonsteel_pseudocore_gem");
+            check(recipes.byKey(crystalId).isPresent() == tensura,
+                    "the crystal variant of " + crystalId + " must load exactly when Tensura's"
+                            + " integration is active");
+            check(recipes.byKey(gemId).isPresent() == !tensura,
+                    "the gem variant of " + gemId + " must load exactly when Tensura's integration"
+                            + " is inactive");
+
+            ResourceLocation activeId = tensura ? crystalId : gemId;
+            RecipeHolder<?> holder = recipes.byKey(activeId).orElseThrow(() ->
+                    new GameTestAssertException("expected " + activeId + " to be loaded"));
+            check(holder.value() instanceof CraftingRecipe,
+                    activeId + " must be a shaped recipe");
+
+            Item ingot = itemOrAir("iceandfire:dragonsteel_" + element + "_ingot");
+            Item bone = firstOfTag("c", "bones/dragon");
+            Item centre = tensura ? itemOrAir("tensura:high_quality_magic_crystal") : firstOfTag("c", "gems");
+            check(ingot != Items.AIR && bone != Items.AIR && centre != Items.AIR,
+                    "the ring ingredients must resolve: ingot=" + ingot + " bone=" + bone
+                            + " centre=" + centre);
+
+            CraftingInput input = CraftingInput.of(3, 3, List.of(
+                    new ItemStack(bone), new ItemStack(ingot), new ItemStack(bone),
+                    new ItemStack(ingot), new ItemStack(centre), new ItemStack(ingot),
+                    new ItemStack(bone), new ItemStack(ingot), new ItemStack(bone)));
+
+            check(((CraftingRecipe) holder.value()).matches(input, helper.getLevel()),
+                    activeId + " must accept the dragonsteel ring");
+            check(holder.value().getResultItem(helper.getLevel().registryAccess())
+                            .is(itemOrAir("pseudocore:" + element + "_dragonsteel_pseudocore")),
+                    activeId + " must craft the " + element + " dragonsteel core, got "
+                            + holder.value().getResultItem(helper.getLevel().registryAccess()));
+        }
 
         helper.succeed();
     }
