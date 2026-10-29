@@ -183,6 +183,11 @@ public final class IafHornAccess {
 
         if (level.addFreshEntity(entity)) {
             stripDragonHorn(stack);
+            // The same release observers as the beast line (#106) - the Curios
+            // addon stamps its linkage here instead of mixing into us.
+            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
+                    new org.bitwisemadness.pseudocore.event.PseudocoreReleaseEvent(
+                            stack, entity, level, pos, releaser));
             return true;
         }
         return false;
