@@ -115,6 +115,9 @@ public final class PseudocoreConfig {
     public static final Integrations INTEGRATIONS;
     public static final ModConfigSpec INTEGRATIONS_SPEC;
 
+    public static final Client CLIENT;
+    public static final ModConfigSpec CLIENT_SPEC;
+
     static {
         final Pair<Common, ModConfigSpec> specPair = new ModConfigSpec.Builder().configure(Common::new);
         COMMON = specPair.getLeft();
@@ -124,6 +127,11 @@ public final class PseudocoreConfig {
                 new ModConfigSpec.Builder().configure(Integrations::new);
         INTEGRATIONS = integrationPair.getLeft();
         INTEGRATIONS_SPEC = integrationPair.getRight();
+
+        final Pair<Client, ModConfigSpec> clientPair =
+                new ModConfigSpec.Builder().configure(Client::new);
+        CLIENT = clientPair.getLeft();
+        CLIENT_SPEC = clientPair.getRight();
     }
 
     private PseudocoreConfig() {
@@ -180,7 +188,7 @@ public final class PseudocoreConfig {
      */
     public static boolean dragonTintVariantMode() {
         try {
-            return INTEGRATIONS.dragonTintMode.get().equalsIgnoreCase("variant");
+            return CLIENT.dragonTintMode.get().equalsIgnoreCase("variant");
         } catch (RuntimeException configNotLoadedOrInvalid) {
             return false;
         }
@@ -249,7 +257,6 @@ public final class PseudocoreConfig {
         public final ModConfigSpec.BooleanValue tensuraEnabled;
         public final ModConfigSpec.BooleanValue iceAndFireEnabled;
         public final ModConfigSpec.BooleanValue respectAnalysisGating;
-        public final ModConfigSpec.ConfigValue<String> dragonTintMode;
 
         public Integrations(ModConfigSpec.Builder builder) {
             builder.push("pseudocore");
@@ -288,6 +295,20 @@ public final class PseudocoreConfig {
                             "Only meaningful while Tensura is installed and its integration is",
                             "on; without both, there is no Tensura information to gate.")
                     .define("respectAnalysisGating", true);
+            builder.pop();
+        }
+    }
+
+    /**
+     * The purely cosmetic preferences (#127), in their own CLIENT config
+     * ({@code pseudocore-client.toml}) - nothing in here ever matters to a
+     * server, so it never rides alongside the integration switches that do.
+     */
+    public static final class Client {
+        public final ModConfigSpec.ConfigValue<String> dragonTintMode;
+
+        public Client(ModConfigSpec.Builder builder) {
+            builder.push("pseudocore");
             dragonTintMode = builder
                     .comment(
                             "How a Dragon Pseudocore's orbs are tinted by the dragon it holds.",
@@ -299,9 +320,10 @@ public final class PseudocoreConfig {
                             "falls back to its element's colour.",
                             "",
                             "Matching is case-insensitive; any other value behaves as 'element'.",
-                            "This reads client-side only, and is deliberately NOT gated by the",
-                            "Ice and Fire integration switch: the colour is derived from data",
-                            "the mod already displays without IaF (the Race line reads dragon",
+                            "Client-side only - it changes nothing anyone else can see or",
+                            "experience, and is deliberately NOT gated by the Ice and Fire",
+                            "integration switch: the colour is derived from data the mod",
+                            "already displays without IaF (the Race line reads dragon",
                             "variants through pure NBT), so it tints the same either way.")
                     .define("dragonTintMode", "element",
                             value -> value instanceof String s
