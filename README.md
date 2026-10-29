@@ -16,8 +16,7 @@ This mod draws on three sources:
   concept: a vessel item that captures a mob with all of its data, shows it in a
   labelled tooltip, and hands ownership off when it is released. The capture
   guards, the tooltip layout, and the ownership-transfer idea all follow that
-  design, and the item's model silhouette is adapted from Ice and Fire's horn
-  (see [`NOTICE.md`](NOTICE.md)).
+  design.
 - **Tensura: Reincarnated** - Tensura contributed the progression layer: EP
   (energy points) shown for captured mobs, named variants, magic crystals as the
   craft ingredients of the tier recipes, and the metal tiers that the pseudocore
@@ -72,12 +71,11 @@ hidden, and name, race and health are always shown. This can be switched off in
 ## Appearance
 
 The item's look follows the Pseudocores of Tensura's anime and manga: a vessel
-with a cluster of coloured orbs, while the model silhouette stays adapted from
-Ice and Fire's horn. When a mob is stored, only the item's **three small orbs**
-change, tinting to a vivid version of that mob's spawn-egg color. Mob types with
-no spawn egg get a stable color derived from their id. Each tier's body also
-carries its metal's colour: the iron tier's texture is drawn with it already,
-and the rest are tinted from it.
+with a cluster of coloured orbs. When a mob is stored, only the item's **three
+small orbs** change, tinting to a vivid version of that mob's spawn-egg color.
+Mob types with no spawn egg get a stable color derived from their id. Each
+tier's body also carries its metal's colour: the iron tier's texture is drawn
+with it already, and the rest are tinted from it.
 
 ## The tier line
 
@@ -189,10 +187,8 @@ one, the item still works and just omits that mod's names or extras.
 
 ## Credits
 
-- Capture/release approach and the horn silhouette modeled on **Ice and Fire** /
-  **Ice and Fire CE** (LGPL). A copy of the horn texture is embedded so the item
-  still renders without Ice and Fire. Full attribution and the list of modifications
-  are in [`NOTICE.md`](NOTICE.md).
+- Capture/release approach and the ownership hand-off modeled on **Ice and Fire**
+  / **Ice and Fire CE** (LGPL); attribution is in [`NOTICE.md`](NOTICE.md).
 - EP display, tier progression, and metal/crystal theming inspired by
   **Tensura: Reincarnated**.
 - Item design, the vessel and its coloured orbs, inspired by the Pseudocores of
@@ -202,10 +198,6 @@ one, the item still works and just omits that mod's names or extras.
 
 GNU Lesser General Public License v2.1 -- see [`LICENSE`](LICENSE).
 Copyright (c) 2026 Bitwise Madness.
-
-The horn's model silhouette and body texture are adapted from Ice and Fire / Ice and
-Fire CE and remain under **LGPL-2.1**; that third-party material is covered by
-[`NOTICE.md`](NOTICE.md), not by this mod's licence alone.
 
 ## AI disclosure
 
