@@ -80,7 +80,13 @@ public final class PseudocoreTintHandler {
             Map.entry("iron_dragon_pseudocore", 0xFFFFFFFF),
             Map.entry("silver_dragon_pseudocore", 0xFF969DA4),
             Map.entry("gold_dragon_pseudocore", 0xFFF6D75C),
-            Map.entry("netherite_dragon_pseudocore", 0xFF6A5F63));
+            Map.entry("netherite_dragon_pseudocore", 0xFF6A5F63),
+            // The dragonsteel line (#112), sampled from IaF's own
+            // <element>_dragonsteel_ingot.png with the #71 rule (mean of the
+            // opaque, hue-carrying pixels between luminance 40 and 235).
+            Map.entry("fire_dragonsteel_pseudocore", 0xFFBA7263),
+            Map.entry("ice_dragonsteel_pseudocore", 0xFF5D8C9E),
+            Map.entry("lightning_dragonsteel_pseudocore", 0xFFEBB9DB));
 
     /** Opaque body tint for a tier; anything unmapped stays white (untouched). */
     private static int bodyColor(ItemStack stack) {

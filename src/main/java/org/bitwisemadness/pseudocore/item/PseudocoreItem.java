@@ -127,6 +127,13 @@ public class PseudocoreItem extends Item {
         // the permissive no-op limits, so nothing else changes behaviour.
         PseudocoreConfig.TierLimits limits = PseudocoreConfig.tierLimits(stack.getItem());
 
+        // Tamed-only (#111): the requirement comes before the permission
+        // axes - a tier that only takes tamed mobs never gets to argue about
+        // which tamed mobs it may take.
+        if (limits.tamedMobsOnly() && !isTamedOrOwned(target)) {
+            return refuse(player, Component.translatable("pseudocore.message.tamed"));
+        }
+
         if (!limits.allowTamedMobs() && isVanillaTamed(target)) {
             return refuse(player, Component.translatable("pseudocore.message.tamed"));
         }
@@ -231,6 +238,23 @@ public class PseudocoreItem extends Item {
     /** Tamed in the vanilla sense - the {@code allowTamedMobs} config axis. */
     private static boolean isVanillaTamed(LivingEntity target) {
         return target instanceof TamableAnimal tamable && tamable.isTame();
+    }
+
+    /**
+     * Tamed or owned in any layer the capture path recognizes - the probe of
+     * the per-tier {@code tamedMobsOnly} axis (#111).
+     *
+     * <p>Shares exactly the two layers {@link #canCapture} reads: vanilla
+     * taming (the pack's domestication mods funnel through it) and Tensura's
+     * ownership table. Deliberately ignores <i>who</i> owns the mob -
+     * anti-theft stays {@code canCapture}'s unconditional business; this axis
+     * only asks whether the mob was tamed at all.</p>
+     */
+    private static boolean isTamedOrOwned(LivingEntity target) {
+        if (isVanillaTamed(target)) {
+            return true;
+        }
+        return TensuraBridge.isLoaded() && TensuraBridge.readOwner(target).isPresent();
     }
 
     // ------------------------------------------------------------------

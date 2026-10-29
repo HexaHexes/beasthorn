@@ -1,11 +1,13 @@
 package org.bitwisemadness.pseudocore.gametest;
 
 import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
@@ -21,10 +23,13 @@ import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.bitwisemadness.pseudocore.Pseudocore;
 import org.bitwisemadness.pseudocore.config.PseudocoreConfig;
+import org.bitwisemadness.pseudocore.item.component.ContainedMobComponent;
+import org.bitwisemadness.pseudocore.registry.ModDataComponents;
 import org.bitwisemadness.pseudocore.registry.ModItems;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Every registered beast tier must have exactly one recipe at a time: the
@@ -102,6 +107,137 @@ public final class BaseRecipeGameTests {
             check(holder.value().getResultItem(level.registryAccess()).is(tier.result()),
                     activeId + " must craft " + tier.result() + ", got "
                             + holder.value().getResultItem(level.registryAccess()));
+        }
+
+        helper.succeed();
+    }
+
+    /**
+     * The upgrade recipe's whole point (#113): crafting a filled core into
+     * the next tier carries its contents - the mob's type, UUID and NBT
+     * byte-identical (the #2 retention gate's assertion), EP progress when
+     * Tensura is present - and the cross refuses the wrong shapes: a filled
+     * corner, or the wrong metal's ingots. Driven through the real
+     * recipe's {@code matches}/{@code assemble}, so the JSON, the
+     * serializer and the component copy are all exercised end to end.
+     */
+    @GameTest(template = "test_area")
+    @SuppressWarnings("unchecked")
+    public static void upgradeCarriesTheCoreContents(GameTestHelper helper) {
+        Level level = helper.getLevel();
+        RecipeManager recipes = level.getServer().getRecipeManager();
+        ResourceLocation linkId = ResourceLocation.fromNamespaceAndPath(Pseudocore.MOD_ID, "copper_to_iron");
+        RecipeHolder<?> holder = recipes.byKey(linkId).orElse(null);
+        check(holder != null, "copper_to_iron must load unconditionally (vanilla metals both sides)");
+        check(holder.value() instanceof CraftingRecipe,
+                linkId + " must be a shaped recipe, got " + holder.value().getClass().getName());
+        CraftingRecipe recipe = (CraftingRecipe) holder.value();
+
+        // A filled copper core carrying everything a capture writes.
+        ItemStack core = new ItemStack(ModItems.COPPER_PSEUDOCORE.get());
+        CompoundTag data = new CompoundTag();
+        data.putInt("AgeTicks", 42);
+        data.putString("Pose", "STANDING");
+        UUID mobId = new UUID(7L, 3L);
+        core.set(ModDataComponents.CONTAINED_MOB.get(), new ContainedMobComponent(
+                ResourceLocation.withDefaultNamespace("cow"), mobId, data));
+        DataComponentType<Double> maxEp = (DataComponentType<Double>) BuiltInRegistries.DATA_COMPONENT_TYPE
+                .getOptional(ResourceLocation.fromNamespaceAndPath("tensura", "max_existence_point"))
+                .orElse(null);
+        DataComponentType<Double> ep = (DataComponentType<Double>) BuiltInRegistries.DATA_COMPONENT_TYPE
+                .getOptional(ResourceLocation.fromNamespaceAndPath("tensura", "existence_point"))
+                .orElse(null);
+        boolean epPresent = maxEp != null && ep != null;
+        if (epPresent) {
+            core.set(maxEp, 1500.0);
+            core.set(ep, 900.0);
+        }
+
+        Item ingot = firstOfTag("c", "ingots/iron");
+        check(ingot != Items.AIR, "c:ingots/iron must resolve");
+        CraftingInput input = CraftingInput.of(3, 3, List.of(
+                ItemStack.EMPTY, new ItemStack(ingot), ItemStack.EMPTY,
+                new ItemStack(ingot), core, new ItemStack(ingot),
+                ItemStack.EMPTY, new ItemStack(ingot), ItemStack.EMPTY));
+        check(recipe.matches(input, level),
+                "the cross of four iron ingots around the copper core must match");
+
+        ItemStack upgraded = recipe.assemble(input, level.registryAccess());
+        check(upgraded.is(ModItems.IRON_PSEUDOCORE.get()),
+                "the upgrade must craft the next tier's core, got " + upgraded);
+
+        ContainedMobComponent before = core.get(ModDataComponents.CONTAINED_MOB.get());
+        ContainedMobComponent kept = upgraded.get(ModDataComponents.CONTAINED_MOB.get());
+        check(kept != null, "the upgraded core must carry the contained_mob component");
+        check(before.entityType().equals(kept.entityType()),
+                "the stored mob's type must survive, got " + kept.entityType() + " vs " + before.entityType());
+        check(before.entityUuid().equals(kept.entityUuid()),
+                "the stored mob's UUID must survive, got " + kept.entityUuid() + " vs " + before.entityUuid());
+        check(before.entityData().equals(kept.entityData()),
+                "the stored mob's NBT must survive byte for byte (#113 - the whole point)");
+        if (epPresent) {
+            check(1500.0D == upgraded.get(maxEp) && 900.0D == upgraded.get(ep),
+                    "EP progress must ride the upgrade");
+        }
+
+        // The cross refuses the wrong shapes: a filled corner (the pattern's
+        // spaces mean empty), and the wrong metal on the sides.
+        CraftingInput cornerFilled = CraftingInput.of(3, 3, List.of(
+                new ItemStack(ingot), new ItemStack(ingot), ItemStack.EMPTY,
+                new ItemStack(ingot), core, new ItemStack(ingot),
+                ItemStack.EMPTY, new ItemStack(ingot), ItemStack.EMPTY));
+        check(!recipe.matches(cornerFilled, level),
+                "a filled corner must not match - the cross is a cross");
+        Item gold = firstOfTag("c", "ingots/gold");
+        check(gold != Items.AIR, "c:ingots/gold must resolve");
+        CraftingInput wrongIngot = CraftingInput.of(3, 3, List.of(
+                ItemStack.EMPTY, new ItemStack(gold), ItemStack.EMPTY,
+                new ItemStack(gold), core, new ItemStack(gold),
+                ItemStack.EMPTY, new ItemStack(gold), ItemStack.EMPTY));
+        check(!recipe.matches(wrongIngot, level),
+                "the next tier's ingots are the only ingots that upgrade");
+
+        helper.succeed();
+    }
+
+    /**
+     * Every chain link exists exactly when its items can exist (#113): the
+     * two vanilla-metal links unconditionally, the two silver links only
+     * when silver's item registers (the same mod-presence predicate the
+     * silver item itself uses), the seven Tensura links only with Tensura,
+     * the four dragon links only with Ice and Fire. A recipe referencing an
+     * unregistered item would fail to load and fail here.
+     */
+    @GameTest(template = "test_area")
+    public static void everyUpgradeLinkExistsWhenItsItemsDo(GameTestHelper helper) {
+        RecipeManager recipes = helper.getLevel().getServer().getRecipeManager();
+        boolean silver = ModItems.silverAvailable();
+        boolean tensura = ModList.get().isLoaded("tensura");
+        boolean iceAndFire = ModItems.dragonTiersAvailable();
+
+        Object[][] links = {
+                {"copper_to_iron", true},
+                {"iron_to_silver", silver},
+                {"silver_to_gold", silver},
+                {"gold_to_netherite", true},
+                {"netherite_to_low_magisteel", tensura},
+                {"low_magisteel_to_high_magisteel", tensura},
+                {"high_magisteel_to_pure_magisteel", tensura},
+                {"pure_magisteel_to_mithril", tensura},
+                {"mithril_to_orichalcum", tensura},
+                {"orichalcum_to_adamantite", tensura},
+                {"adamantite_to_hihiirokane", tensura},
+                {"copper_dragon_to_iron_dragon", iceAndFire},
+                {"iron_dragon_to_silver_dragon", iceAndFire},
+                {"silver_dragon_to_gold_dragon", iceAndFire},
+                {"gold_dragon_to_netherite_dragon", iceAndFire}};
+
+        for (Object[] link : links) {
+            ResourceLocation id = ResourceLocation.fromNamespaceAndPath(Pseudocore.MOD_ID, (String) link[0]);
+            boolean expected = (Boolean) link[1];
+            check(recipes.byKey(id).isPresent() == expected,
+                    id + " must be loaded exactly when its items exist (expected " + expected
+                            + ", found " + recipes.byKey(id).isPresent() + ")");
         }
 
         helper.succeed();

@@ -57,6 +57,13 @@ public final class TierCaptureConfigGameTests {
             "hihiirokane");
 
     /**
+     * The tiers whose tamed-only gate defaults on (#111): the vanilla-metal
+     * line copper through netherite. Everything after it defaults off.
+     */
+    private static final java.util.Set<String> TAMED_ONLY_BY_DEFAULT = java.util.Set.of(
+            "copper", "iron", "silver", "gold", "netherite");
+
+    /**
      * The default EP caps, following Tensura's own EP progression rebased at
      * x1.5 (see the tier list in {@code PseudocoreConfig}). Hihi'irokane, the
      * last tier and the cap of caps, is uncapped.
@@ -111,10 +118,17 @@ public final class TierCaptureConfigGameTests {
                             + section.maxEP.get());
             check(section.allowTamedMobs.get(), key + " must default to allowing tamed mobs");
             check(section.allowTensuraNamed.get(), key + " must default to allowing named mobs");
+            boolean expectedTamedOnly = TAMED_ONLY_BY_DEFAULT.contains(key);
+            check(section.tamedMobsOnly.get() == expectedTamedOnly,
+                    key + ".tamedMobsOnly must default to " + expectedTamedOnly
+                            + " (on for copper..netherite, off for the Tensura metals), got "
+                            + section.tamedMobsOnly.get());
 
             PseudocoreConfig.TierLimits limits = PseudocoreConfig.COMMON.limits(key);
             check(limits.maxEP() == expectedMaxEP && limits.allowTamedMobs() && limits.allowTensuraNamed(),
                     "the resolved limits for " + key + " must match the section's defaults");
+            check(limits.tamedMobsOnly() == expectedTamedOnly,
+                    "the resolved limits for " + key + " must carry its tamedMobsOnly default");
         }
 
         helper.succeed();
@@ -125,8 +139,18 @@ public final class TierCaptureConfigGameTests {
         var player = helper.makeMockPlayer(GameType.SURVIVAL);
         var cow = helper.spawn(EntityType.COW, 1, 1, 1);
         ItemStack stack = new ItemStack(ModItems.IRON_PSEUDOCORE.get());
+        PseudocoreConfig.TierSection iron = PseudocoreConfig.COMMON.tier("iron").orElseThrow();
 
-        InteractionResult result = PseudocoreItem.tryCapture(player, cow, stack);
+        // This probe predates the tamed-only default (#111): it pins the axis
+        // off so it keeps testing exactly what it is named for - a plain,
+        // untamed mob going into a core - under any default.
+        iron.tamedMobsOnly.set(false);
+        InteractionResult result;
+        try {
+            result = PseudocoreItem.tryCapture(player, cow, stack);
+        } finally {
+            iron.tamedMobsOnly.set(true);
+        }
 
         check(result == InteractionResult.SUCCESS,
                 "a plain mob must be capturable by the iron tier, got " + result);
@@ -160,6 +184,52 @@ public final class TierCaptureConfigGameTests {
         InteractionResult allowed = PseudocoreItem.tryCapture(player, wolf, stack);
         check(allowed == InteractionResult.SUCCESS,
                 "with the switch restored the capture succeeds, got " + allowed);
+
+        helper.succeed();
+    }
+
+    /**
+     * The tamed-only axis (#111): with it on (the copper default), an
+     * untamed mob is refused and a tamed one passes; with it off the same
+     * untamed mob captures. One cow walks all three states, restored in a
+     * finally block like every config flip in this file.
+     */
+    @GameTest(template = "test_area")
+    public static void untamedCaptureFollowsTamedMobsOnly(GameTestHelper helper) {
+        var player = helper.makeMockPlayer(GameType.SURVIVAL);
+        var cow = helper.spawn(EntityType.COW, 1, 1, 1);
+        PseudocoreConfig.TierSection copper = PseudocoreConfig.COMMON.tier("copper").orElseThrow();
+        ItemStack stack = new ItemStack(ModItems.COPPER_PSEUDOCORE.get());
+
+        // On by default: the untamed cow is refused and nothing is stored.
+        check(copper.tamedMobsOnly.get(),
+                "the copper tier must default to tamed-only (#111)");
+        InteractionResult refused = PseudocoreItem.tryCapture(player, cow, stack);
+        check(refused == InteractionResult.PASS,
+                "a tamed-only tier must refuse an untamed mob, got " + refused);
+        check(!stack.has(ModDataComponents.CONTAINED_MOB.get()),
+                "a refused capture must not write the contained_mob component");
+
+        // Still on: a tamed mob passes the axis (anti-theft points at this
+        // very player, so the tamed-only gate is the last gate in play).
+        Wolf wolf = helper.spawn(EntityType.WOLF, 2, 1, 2);
+        wolf.tame(player);
+        InteractionResult tamed = PseudocoreItem.tryCapture(player, wolf, stack);
+        check(tamed == InteractionResult.SUCCESS,
+                "a tamed-only tier must still capture a tamed mob, got " + tamed);
+
+        // Off: the same untamed cow captures - into a fresh core, since the
+        // tamed wolf above now fills the first one (the already-full gate
+        // would otherwise be the thing refusing here).
+        copper.tamedMobsOnly.set(false);
+        try {
+            ItemStack second = new ItemStack(ModItems.COPPER_PSEUDOCORE.get());
+            InteractionResult allowed = PseudocoreItem.tryCapture(player, cow, second);
+            check(allowed == InteractionResult.SUCCESS,
+                    "with the axis off an untamed mob must capture, got " + allowed);
+        } finally {
+            copper.tamedMobsOnly.set(true);
+        }
 
         helper.succeed();
     }
@@ -236,7 +306,23 @@ public final class TierCaptureConfigGameTests {
         var player = helper.makeMockPlayer(GameType.SURVIVAL);
         var cow = helper.spawn(EntityType.COW, 2, 1, 2);
         ItemStack stack = new ItemStack(ModItems.IRON_PSEUDOCORE.get());
+        PseudocoreConfig.TierSection iron = PseudocoreConfig.COMMON.tier("iron").orElseThrow();
 
+        // Untamed cows throughout: pin the tamed-only default (#111) off for
+        // this round trip - the gate has its own test.
+        iron.tamedMobsOnly.set(false);
+        try {
+            roundTripCapture(helper, player, cow, stack);
+        } finally {
+            iron.tamedMobsOnly.set(true);
+        }
+
+        helper.succeed();
+    }
+
+    private static void roundTripCapture(GameTestHelper helper,
+                                         net.minecraft.world.entity.player.Player player,
+                                         Cow cow, ItemStack stack) {
         check(PseudocoreItem.tryCapture(player, cow, stack) == InteractionResult.SUCCESS,
                 "capture must succeed for the round trip to mean anything");
         check(stack.has(ModDataComponents.CONTAINED_MOB.get()),
@@ -284,8 +370,6 @@ public final class TierCaptureConfigGameTests {
         var secondCow = helper.spawn(EntityType.COW, 3, 1, 3);
         check(PseudocoreItem.tryCapture(player, secondCow, stack) == InteractionResult.SUCCESS,
                 "an emptied core must capture again (the addon's release/recall loop)");
-
-        helper.succeed();
     }
 
     private static void check(boolean condition, String message) {
