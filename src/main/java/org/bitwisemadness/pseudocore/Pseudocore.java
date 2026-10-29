@@ -29,6 +29,7 @@ public final class Pseudocore {
 
         container.registerConfig(ModConfig.Type.SERVER, PseudocoreConfig.COMMON_SPEC);
         container.registerConfig(ModConfig.Type.COMMON, PseudocoreConfig.INTEGRATIONS_SPEC);
+        container.registerConfig(ModConfig.Type.CLIENT, PseudocoreConfig.CLIENT_SPEC);
 
         modBus.addListener(this::onCommonSetup);
     }
