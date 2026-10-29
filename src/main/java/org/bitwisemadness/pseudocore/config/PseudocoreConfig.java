@@ -47,21 +47,29 @@ public final class PseudocoreConfig {
      * anchors the values interpolate.</p>
      */
     private static final List<Tier> TIERS = List.of(
-            new Tier("copper", 1_500),
-            new Tier("iron", 7_500),
-            new Tier("silver", 15_000),
-            new Tier("gold", 37_500),
-            new Tier("netherite", 112_500),
-            new Tier("lowMagisteel", 150_000),
-            new Tier("highMagisteel", 225_000),
-            new Tier("pureMagisteel", 300_000),
-            new Tier("mithril", 450_000),
-            new Tier("orichalcum", 750_000),
-            new Tier("adamantite", 1_500_000),
-            new Tier("hihiirokane", 0));
+            new Tier("copper", 1_500, true),
+            new Tier("iron", 7_500, true),
+            new Tier("silver", 15_000, true),
+            new Tier("gold", 37_500, true),
+            new Tier("netherite", 112_500, true),
+            new Tier("lowMagisteel", 150_000, false),
+            new Tier("highMagisteel", 225_000, false),
+            new Tier("pureMagisteel", 300_000, false),
+            new Tier("mithril", 450_000, false),
+            new Tier("orichalcum", 750_000, false),
+            new Tier("adamantite", 1_500_000, false),
+            new Tier("hihiirokane", 0, false));
 
-    /** One tier's config key and default EP cap. */
-    private record Tier(String key, double defaultMaxEP) {
+    /**
+     * One tier's config key, default EP cap, and default tamed-only gate
+     * (#111).
+     *
+     * <p>The tamed-only default is on for the vanilla-metal line copper
+     * through netherite - capture follows domestication on those tiers - and
+     * off for the Tensura metals, which were not part of the request; the
+     * per-tier config can flip either direction.</p>
+     */
+    private record Tier(String key, double defaultMaxEP, boolean defaultTamedMobsOnly) {
     }
 
     /**
@@ -438,13 +446,21 @@ public final class PseudocoreConfig {
                                 "Whether mobs tamed in the vanilla sense may be captured by this",
                                 "tier. The anti-theft rule is separate and always applies.")
                         .define("allowTamedMobs", true);
+                ModConfigSpec.BooleanValue tamedOnly = builder
+                        .comment(
+                                "Whether this tier only captures tamed or owned mobs: an untamed",
+                                "mob is refused outright. Defaults on for the vanilla-metal line",
+                                "copper through netherite (capture follows domestication there),",
+                                "off for the Tensura metals. The anti-theft rule - only mobs you",
+                                "own - is separate and always applies.")
+                        .define("tamedMobsOnly", tier.defaultTamedMobsOnly());
                 ModConfigSpec.BooleanValue named = builder
                         .comment(
                                 "Whether mobs that Tensura's naming system has named may be",
                                 "captured by this tier.")
                         .define("allowTensuraNamed", true);
                 builder.pop();
-                tierSections.put(tier.key(), new TierSection(maxEP, tamed, named));
+                tierSections.put(tier.key(), new TierSection(maxEP, tamed, tamedOnly, named));
             }
             builder.pop();
             tiers = Collections.unmodifiableMap(tierSections);
@@ -511,7 +527,7 @@ public final class PseudocoreConfig {
             TierSection section = tiers.get(key);
             return section == null ? TierLimits.PERMISSIVE
                     : new TierLimits(section.maxEP.get(), section.allowTamedMobs.get(),
-                            section.allowTensuraNamed.get());
+                            section.tamedMobsOnly.get(), section.allowTensuraNamed.get());
         }
 
         /**
@@ -540,15 +556,17 @@ public final class PseudocoreConfig {
      * section, so an unknown item never limits anything.
      */
     public static final class TierLimits {
-        static final TierLimits PERMISSIVE = new TierLimits(0.0D, true, true);
+        static final TierLimits PERMISSIVE = new TierLimits(0.0D, true, false, true);
 
         private final double maxEP;
         private final boolean allowTamedMobs;
+        private final boolean tamedMobsOnly;
         private final boolean allowTensuraNamed;
 
-        TierLimits(double maxEP, boolean allowTamedMobs, boolean allowTensuraNamed) {
+        TierLimits(double maxEP, boolean allowTamedMobs, boolean tamedMobsOnly, boolean allowTensuraNamed) {
             this.maxEP = maxEP;
             this.allowTamedMobs = allowTamedMobs;
+            this.tamedMobsOnly = tamedMobsOnly;
             this.allowTensuraNamed = allowTensuraNamed;
         }
 
@@ -561,21 +579,28 @@ public final class PseudocoreConfig {
             return allowTamedMobs;
         }
 
+        /** Only tamed/owned mobs are capturable (#111); false never limits. */
+        public boolean tamedMobsOnly() {
+            return tamedMobsOnly;
+        }
+
         public boolean allowTensuraNamed() {
             return allowTensuraNamed;
         }
     }
 
-    /** The three live config values of one tier's section. */
+    /** The four live config values of one tier's section. */
     public static final class TierSection {
         public final ModConfigSpec.DoubleValue maxEP;
         public final ModConfigSpec.BooleanValue allowTamedMobs;
+        public final ModConfigSpec.BooleanValue tamedMobsOnly;
         public final ModConfigSpec.BooleanValue allowTensuraNamed;
 
         TierSection(ModConfigSpec.DoubleValue maxEP, ModConfigSpec.BooleanValue allowTamedMobs,
-                    ModConfigSpec.BooleanValue allowTensuraNamed) {
+                    ModConfigSpec.BooleanValue tamedMobsOnly, ModConfigSpec.BooleanValue allowTensuraNamed) {
             this.maxEP = maxEP;
             this.allowTamedMobs = allowTamedMobs;
+            this.tamedMobsOnly = tamedMobsOnly;
             this.allowTensuraNamed = allowTensuraNamed;
         }
     }

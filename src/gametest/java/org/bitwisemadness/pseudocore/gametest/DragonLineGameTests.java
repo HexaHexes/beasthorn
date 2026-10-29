@@ -221,16 +221,24 @@ public final class DragonLineGameTests {
         var player = helper.makeMockPlayer(GameType.SURVIVAL);
 
         var cow = helper.spawn(net.minecraft.world.entity.EntityType.COW, 1, 1, 1);
-        player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(ModItems.IRON_PSEUDOCORE.get()));
-        var beastEvent = new PlayerInteractEvent.EntityInteract(player, InteractionHand.MAIN_HAND, cow);
-        NeoForge.EVENT_BUS.post(beastEvent);
-        check(beastEvent.isCanceled(),
-                "control failed: the beast line's click must capture the cow and cancel the event");
-        check(beastEvent.getCancellationResult() == InteractionResult.SUCCESS,
-                "control failed: the cancelled click must report SUCCESS, got "
-                        + beastEvent.getCancellationResult());
-        check(player.getMainHandItem().has(ModDataComponents.CONTAINED_MOB.get()),
-                "control failed: the capture must have stored the cow");
+        // The control probes the click WIRING with an untamed cow: pin the
+        // tamed-only default (#111) off for the control leg only.
+        PseudocoreConfig.TierSection iron = PseudocoreConfig.COMMON.tier("iron").orElseThrow();
+        iron.tamedMobsOnly.set(false);
+        boolean controlPassed;
+        try {
+            player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(ModItems.IRON_PSEUDOCORE.get()));
+            var beastEvent = new PlayerInteractEvent.EntityInteract(player, InteractionHand.MAIN_HAND, cow);
+            NeoForge.EVENT_BUS.post(beastEvent);
+            controlPassed = beastEvent.isCanceled()
+                    && beastEvent.getCancellationResult() == InteractionResult.SUCCESS
+                    && player.getMainHandItem().has(ModDataComponents.CONTAINED_MOB.get());
+        } finally {
+            iron.tamedMobsOnly.set(true);
+        }
+        check(controlPassed,
+                "control failed: the beast line's click must capture the cow and cancel the event"
+                        + " (tamed-only pinned off for this leg)");
 
         @SuppressWarnings("unchecked")
         var fireDragon = (net.minecraft.world.entity.EntityType<DragonBaseEntity>) BuiltInRegistries.ENTITY_TYPE
