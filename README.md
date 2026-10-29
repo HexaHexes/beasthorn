@@ -71,11 +71,11 @@ hidden, and name, race and health are always shown. This can be switched off in
 ## Appearance
 
 The item's look follows the Pseudocores of Tensura's anime and manga: a vessel
-with a cluster of coloured orbs. When a mob is stored, only the item's **three
-small orbs** change, tinting to a vivid version of that mob's spawn-egg color.
-Mob types with no spawn egg get a stable color derived from their id. Each
-tier's body also carries its metal's colour: the iron tier's texture is drawn
-with it already, and the rest are tinted from it.
+with a single coloured orb. When a mob is stored, only the item's **orb**
+changes, tinting to a vivid version of that mob's spawn-egg color. Mob types
+with no spawn egg get a stable color derived from their id. Each tier's body
+also carries its metal's colour: the iron tier's texture is drawn with it
+already, and the rest are tinted from it.
 
 ## The tier line
 
@@ -191,7 +191,7 @@ one, the item still works and just omits that mod's names or extras.
   / **Ice and Fire CE** (LGPL); attribution is in [`NOTICE.md`](NOTICE.md).
 - EP display, tier progression, and metal/crystal theming inspired by
   **Tensura: Reincarnated**.
-- Item design, the vessel and its coloured orbs, inspired by the Pseudocores of
+- Item design, the vessel and its single coloured orb, inspired by the Pseudocores of
   the **Tensura** anime and manga, which is also where the mod's name comes from.
 
 ## License
