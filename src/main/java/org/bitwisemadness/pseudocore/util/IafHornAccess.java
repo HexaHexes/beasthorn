@@ -8,13 +8,17 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.fml.ModList;
+import org.bitwisemadness.pseudocore.item.DragonPseudocoreItem;
 import org.bitwisemadness.pseudocore.registry.ModGameRules;
 
 import java.util.UUID;
@@ -204,6 +208,53 @@ public final class IafHornAccess {
                 stack.remove(component.type());
                 return;
             }
+        }
+    }
+
+    /**
+     * Capture a dragon into this stack through the tier's own gates (#109,
+     * addon Phase 1 recall): the stack's item is resolved to its tier and that
+     * instance's real {@code interactLivingEntity} runs - the very chain the
+     * right-click takes - so the gates cannot fork from the click path.
+     *
+     * <p><b>The stack is held in the main hand for the duration of the call.</b>
+     * IaF's horn path discards the stack parameter and re-reads
+     * {@code player.getItemInHand(hand)} - proven against the pinned 9128508
+     * bytecode and a live probe: with an empty hand the call returns PASS and
+     * stores nothing, with the core held it proceeds to the gates and IaF's
+     * ownership guard. Every real click has the item in hand; a recall passes
+     * the stack that lives in the <i>Curios</i> slot, so this method arranges
+     * that state itself and puts the hand back afterwards (same-instance, so
+     * the click path - already holding it - is a no-op round trip).</p>
+     *
+     * <p>The same contract as {@link #releaseDragonAt}: callers only reach
+     * here while a dragon core is in play, which means Ice and Fire is
+     * installed, so nothing here loads without it. The signature stays
+     * vanilla-typed end to end so the Curios addon compiles it without IaF on
+     * its own classpath - it cannot even name {@link DragonPseudocoreItem},
+     * whose superclass is IaF's horn item (#109).</p>
+     *
+     * <p>Returns exactly what the chain returns: our tier gates refuse with
+     * {@code PASS} (after their actionbar message), IaF's own ownership guard
+     * declines with {@code CONSUME}, and a stored dragon comes back as
+     * {@code SUCCESS} - the refusal shapes are pinned by
+     * {@code DragonLineGameTests}.</p>
+     *
+     * @param player who is capturing - drives the gate messages and limits
+     * @param target the dragon being captured
+     * @param stack  the dragon core whose storage receives it
+     * @return the tier chain's interaction result
+     */
+    public static InteractionResult tryCaptureDragon(Player player, LivingEntity target, ItemStack stack) {
+        if (!(stack.getItem() instanceof DragonPseudocoreItem core)) {
+            return InteractionResult.PASS;
+        }
+        ItemStack previous = player.getItemInHand(InteractionHand.MAIN_HAND);
+        player.setItemInHand(InteractionHand.MAIN_HAND, stack);
+        try {
+            return core.interactLivingEntity(stack, player, target, InteractionHand.MAIN_HAND);
+        } finally {
+            player.setItemInHand(InteractionHand.MAIN_HAND, previous);
         }
     }
 
