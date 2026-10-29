@@ -333,6 +333,11 @@ public class PseudocoreItem extends Item {
             if (transfer) {
                 transferOwnership((LivingEntity) entity, releaser);
             }
+            // The one integration point for release observers (the Curios addon
+            // stamps its core-to-mob linkage here rather than mixing into us).
+            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
+                    new org.bitwisemadness.pseudocore.event.PseudocoreReleaseEvent(
+                            stack, entity, level, pos, releaser));
             return true;
         }
         return false;

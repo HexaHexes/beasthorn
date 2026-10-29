@@ -7,6 +7,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
@@ -138,6 +139,37 @@ public abstract class DragonHornItemMixin {
         // mod's own proven "make this player the owner" sequence.
         dragon.setTame(true, true);
         dragon.tame(player);
+    }
+
+    /**
+     * Post the release event for Ice and Fire's own block-click release, so
+     * observers (the Curios addon's linkage stamp, #106) see dragon releases
+     * through the horn's native path too. Anchored right after the horn
+     * component strip - the same call family the ownership inject uses - so
+     * the event only fires when a release actually happened, and the
+     * {@code @Local} entity resolves exactly like the sibling inject's.
+     */
+    @Inject(
+            method = "useOn",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/item/ItemStack;remove(Lnet/minecraft/core/component/DataComponentType;)Ljava/lang/Object;",
+                    shift = At.Shift.AFTER
+            )
+    )
+    private void pseudocore$fireReleaseEvent(UseOnContext context,
+                                             CallbackInfoReturnable<InteractionResult> cir,
+                                             @Local Entity entity) {
+        if (!PseudocoreConfig.iceAndFireIntegrationEnabled()) {
+            return;
+        }
+        if (!(context.getLevel() instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
+                new org.bitwisemadness.pseudocore.event.PseudocoreReleaseEvent(
+                        context.getItemInHand(), entity, serverLevel, entity.position(),
+                        context.getPlayer()));
     }
 
     /**
