@@ -367,6 +367,61 @@ public final class DragonLineGameTests {
         helper.succeed();
     }
 
+    /**
+     * {@code tryCaptureDragon} (#109) must be a pure delegation to the tier's
+     * real click chain: the same three outcomes {@link #stageCapRefusesGrownDragons}
+     * and {@link #captureClicksReachTheItemThroughTheEvent} pinned on the click
+     * path, reached through the new entry point instead - non-dragon stack
+     * ignored (PASS), our stage gate refusing before IaF (PASS, nothing
+     * stored), and the uncapped tier handing off to IaF's ownership guard,
+     * whose every decline is CONSUME with nothing stored (the class javadoc
+     * explains why a mock holder can never reach a successful dragon capture).
+     * A positive capture stays untestable here by construction; the recall
+     * flow's CI coverage is beast-only for the same reason.
+     */
+    @GameTest(template = "test_area")
+    public static void tryCaptureDragonDelegatesThroughTheTierGates(GameTestHelper helper) {
+        if (!ModItems.dragonTiersAvailable()) {
+            helper.succeed();
+            return;
+        }
+        var player = helper.makeMockPlayer(GameType.SURVIVAL);
+        @SuppressWarnings("unchecked")
+        var fireDragon = (net.minecraft.world.entity.EntityType<DragonBaseEntity>) BuiltInRegistries.ENTITY_TYPE
+                .get(ResourceLocation.fromNamespaceAndPath("iceandfire", "fire_dragon"));
+        DragonBaseEntity dragon = helper.spawn(fireDragon, 1, 1, 1);
+        dragon.setAgeInDays(75);
+
+        // A beast core in the slot: the entry point ignores it outright.
+        ItemStack beast = new ItemStack(ModItems.IRON_PSEUDOCORE.get());
+        check(IafHornAccess.tryCaptureDragon(player, dragon, beast) == InteractionResult.PASS,
+                "a non-dragon core must pass through untouched");
+
+        // Our stage gate refuses before IaF is ever asked.
+        ItemStack capped = new ItemStack(ModItems.DRAGON_TIERS.get(0).get());
+        check(IafHornAccess.tryCaptureDragon(player, dragon, capped) == InteractionResult.PASS,
+                "the capped tier must refuse a grown dragon with PASS, exactly as the click path does");
+        check(IafHornAccess.read(capped) == null,
+                "a refused capture must not store the dragon");
+
+        // Uncapped: our gates pass, IaF's ownership guard declines - CONSUME.
+        // The API must also have restored the (empty) main hand around the
+        // call - the recall caller passes a Curios-slot stack, and its hand
+        // state is none of this API's business.
+        ItemStack uncapped = new ItemStack(ModItems.DRAGON_TIERS.get(4).get());
+        InteractionResult uncappedResult =
+                IafHornAccess.tryCaptureDragon(player, dragon, uncapped);
+        check(uncappedResult == InteractionResult.CONSUME,
+                "IaF's ownership guard must decline with CONSUME, exactly as the click path sees it, got "
+                        + uncappedResult + "; stored=" + (IafHornAccess.read(uncapped) != null));
+        check(IafHornAccess.read(uncapped) == null,
+                "a capture stopped by IaF's guard must not store the dragon");
+        check(player.getMainHandItem().isEmpty(),
+                "the temporary hand-hold must be restored - the caller's hand state must survive");
+
+        helper.succeed();
+    }
+
     /** The stage line is addDragonLines' second line; its first number is the stage. */
     private static int parseStageLine(List<Component> tooltip) {
         check(tooltip.size() >= 2,
