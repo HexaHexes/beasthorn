@@ -13,7 +13,7 @@ import java.util.Map;
  * {@code ChatFormatting} hue that IaF itself uses to colour dragon egg, scale
  * and scale-armor names.</p>
  *
- * <p>Two modes, chosen by the {@code dragonTintMode} common config: element
+ * <p>Two modes, chosen by the {@code dragonTintMode} client config: element
  * mode tints every dragon of one element alike; variant mode uses the curated
  * per-variant hue and falls back to the element colour for a variant it does
  * not know (the DragonColor registry is datapack-driven, so names are
