@@ -15,10 +15,13 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.bitwisemadness.pseudocore.Pseudocore;
 import org.bitwisemadness.pseudocore.config.PseudocoreConfig;
+import org.bitwisemadness.pseudocore.event.PseudocoreReleaseEvent;
 import org.bitwisemadness.pseudocore.item.PseudocoreItem;
 import org.bitwisemadness.pseudocore.item.component.ContainedMobComponent;
 import org.bitwisemadness.pseudocore.registry.ModDataComponents;
@@ -242,9 +245,32 @@ public final class TierCaptureConfigGameTests {
         check(helper.getLevel().getEntitiesOfClass(Cow.class, new AABB(spawnPos, spawnPos).inflate(3)).isEmpty(),
                 "capture must remove the mob from the world - otherwise release would duplicate it");
 
-        boolean released = PseudocoreItem.releaseContained(stack, helper.getLevel(), spawnPos, 0.0F, player);
+        // The release event (#106) is the addon's integration point; capture
+        // what it carries while the release runs.
+        final PseudocoreReleaseEvent[] seen = {null};
+        Object listener = new Object() {
+            @SubscribeEvent
+            public void onRelease(PseudocoreReleaseEvent event) {
+                seen[0] = event;
+            }
+        };
+        NeoForge.EVENT_BUS.register(listener);
+        boolean released;
+        try {
+            released = PseudocoreItem.releaseContained(stack, helper.getLevel(), spawnPos, 0.0F, player);
+        } finally {
+            NeoForge.EVENT_BUS.unregister(listener);
+        }
 
         check(released, "releaseContained must report a successful release");
+        check(seen[0] != null, "release must post PseudocoreReleaseEvent (#106)");
+        check(seen[0].released() != null && seen[0].released().isAlive(),
+                "the event must carry the spawned mob");
+        check(!seen[0].stack().has(ModDataComponents.CONTAINED_MOB.get()),
+                "the event's stack must be the emptied core");
+        check(seen[0].position().distanceTo(spawnPos) < 0.1,
+                "the event must carry the spawn position");
+        check(seen[0].releaser() == player, "the event must carry the releasing player");
         check(!stack.has(ModDataComponents.CONTAINED_MOB.get()),
                 "release must strip the storage component");
         check(!stack.isEmpty(), "release must not consume the stack - the emptied core is reusable");
