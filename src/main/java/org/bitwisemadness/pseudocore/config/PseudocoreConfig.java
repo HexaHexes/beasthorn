@@ -1,10 +1,5 @@
 package org.bitwisemadness.pseudocore.config;
 
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.world.item.Item;
-import net.neoforged.neoforge.common.ModConfigSpec;
-import org.apache.commons.lang3.tuple.Pair;
-
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -12,6 +7,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.item.Item;
+import net.neoforged.neoforge.common.ModConfigSpec;
+import org.apache.commons.lang3.tuple.Pair;
 
 /**
  * Mod config, split by where the value has to be readable.

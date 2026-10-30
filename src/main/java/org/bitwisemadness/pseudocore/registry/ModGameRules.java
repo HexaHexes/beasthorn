@@ -22,14 +22,14 @@ public final class ModGameRules {
      * mob's owner. Independent of the dragon rule so a server can enable one
      * without the other.
      */
-    public static GameRules.Key<GameRules.BooleanValue> PSEUDOCORE_OWNERSHIP_TRANSFER;
+    private static GameRules.Key<GameRules.BooleanValue> PSEUDOCORE_OWNERSHIP_TRANSFER;
 
     /**
      * When true, releasing a dragon from Ice and Fire CE's own Dragon Horn
      * makes the releasee that dragon's owner. Applied via a mixin that only
      * loads when Ice and Fire CE is present.
      */
-    public static GameRules.Key<GameRules.BooleanValue> DRAGON_HORN_OWNERSHIP_TRANSFER;
+    private static GameRules.Key<GameRules.BooleanValue> DRAGON_HORN_OWNERSHIP_TRANSFER;
 
     private ModGameRules() {
     }

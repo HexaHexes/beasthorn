@@ -1,17 +1,16 @@
 package org.bitwisemadness.pseudocore.util;
 
+import java.util.Map;
+import java.util.UUID;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.SpawnEggItem;
+import org.bitwisemadness.mobinfocommon.variant.VariantHelper;
 import org.bitwisemadness.pseudocore.Pseudocore;
 import org.bitwisemadness.pseudocore.config.PseudocoreConfig;
 import org.bitwisemadness.pseudocore.item.component.ContainedMobComponent;
-import org.bitwisemadness.mobinfocommon.variant.VariantHelper;
-
-import java.util.Map;
-import java.util.UUID;
 
 /**
  * The orb-colour ladder, dist-neutral (#123): the derivation the item tint

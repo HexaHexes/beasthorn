@@ -1,6 +1,7 @@
 package org.bitwisemadness.pseudocore.gametest;
 
 import io.github.lightman314.lightmanscurrency.common.traders.item.tradedata.ItemTradeData;
+import java.util.UUID;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestAssertException;
@@ -14,8 +15,6 @@ import org.bitwisemadness.pseudocore.Pseudocore;
 import org.bitwisemadness.pseudocore.item.component.ContainedMobComponent;
 import org.bitwisemadness.pseudocore.registry.ModDataComponents;
 import org.bitwisemadness.pseudocore.registry.ModItems;
-
-import java.util.UUID;
 
 /**
  * Proves that a Pseudocore put up for sale through Lightman's Currency arrives at the
