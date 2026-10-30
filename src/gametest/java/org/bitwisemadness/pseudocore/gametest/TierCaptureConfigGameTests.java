@@ -333,12 +333,7 @@ public final class TierCaptureConfigGameTests {
         // The release event (#106) is the addon's integration point; capture
         // what it carries while the release runs.
         final PseudocoreReleaseEvent[] seen = {null};
-        Object listener = new Object() {
-            @SubscribeEvent
-            public void onRelease(PseudocoreReleaseEvent event) {
-                seen[0] = event;
-            }
-        };
+        ReleaseListener listener = new ReleaseListener(seen);
         NeoForge.EVENT_BUS.register(listener);
         boolean released;
         try {
@@ -374,6 +369,26 @@ public final class TierCaptureConfigGameTests {
     private static void check(boolean condition, String message) {
         if (!condition) {
             throw new GameTestAssertException(message);
+        }
+    }
+
+    /**
+     * The release probe the round trip registers on the bus. A named class
+     * rather than an anonymous one because SpotBugs cannot see that the event
+     * bus calls {@link #onRelease} reflectively - the anonymous-class form
+     * tripped UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS.
+     */
+    private static final class ReleaseListener {
+
+        private final PseudocoreReleaseEvent[] seen;
+
+        private ReleaseListener(PseudocoreReleaseEvent[] seen) {
+            this.seen = seen;
+        }
+
+        @SubscribeEvent
+        public void onRelease(PseudocoreReleaseEvent event) {
+            this.seen[0] = event;
         }
     }
 }
