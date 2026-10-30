@@ -1,5 +1,7 @@
 package org.bitwisemadness.pseudocore.client;
 
+import java.util.Map;
+import java.util.UUID;
 import net.minecraft.client.color.item.ItemColor;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -9,9 +11,6 @@ import org.bitwisemadness.pseudocore.item.component.ContainedMobComponent;
 import org.bitwisemadness.pseudocore.registry.ModDataComponents;
 import org.bitwisemadness.pseudocore.util.IafHornAccess;
 import org.bitwisemadness.pseudocore.util.OrbColors;
-
-import java.util.Map;
-import java.util.UUID;
 
 /**
  * Tints the three orbs in the Pseudocore texture to the captured mob's colour.

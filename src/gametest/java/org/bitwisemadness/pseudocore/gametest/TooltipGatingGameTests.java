@@ -3,6 +3,10 @@ package org.bitwisemadness.pseudocore.gametest;
 import io.github.manasmods.tensura.registry.attribute.TensuraAttributes;
 import io.github.manasmods.tensura.storage.TensuraStorages;
 import io.github.manasmods.tensura.storage.player.ITensuraPlayer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTest;
@@ -19,13 +23,8 @@ import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.bitwisemadness.pseudocore.Pseudocore;
-import org.bitwisemadness.pseudocore.util.TooltipHelper;
 import org.bitwisemadness.pseudocore.util.TensuraBridge;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import org.bitwisemadness.pseudocore.util.TooltipHelper;
 
 /**
  * The tooltip's analysis gating: EP and the Tensura-recorded owner answer to

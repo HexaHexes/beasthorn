@@ -1,8 +1,8 @@
 package org.bitwisemadness.pseudocore.util;
 
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.nbt.CompoundTag;
 
 /**
  * NBT save/load helpers for the capture and release paths.

@@ -1,5 +1,9 @@
 package org.bitwisemadness.pseudocore.util;
 
+import java.text.NumberFormat;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.language.I18n;
@@ -15,11 +19,6 @@ import net.minecraft.world.item.ItemStack;
 import org.bitwisemadness.mobinfocommon.analysis.AnalysisGating;
 import org.bitwisemadness.mobinfocommon.variant.VariantHelper;
 import org.bitwisemadness.pseudocore.config.PseudocoreConfig;
-
-import java.text.NumberFormat;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Builds the shared tooltip block for a filled horn.
@@ -133,17 +132,18 @@ public final class TooltipHelper {
      * resolves a method's <b>whole</b> bytecode when the class is loaded, and
      * {@code Minecraft#player} is typed {@code LocalPlayer} - a client-only
      * class whose very load aborts a dedicated server. Reading it as
-     * {@code Object} and narrowing with {@code instanceof} keeps the only
-     * client-typed reference in this class out of the verifier's view, which
+     * {@code Object} and narrowing with a plain cast keeps the only
+     * client-typed reference in this class out of the verifier's view (the
+     * narrowing instruction names {@code Player}, never {@code LocalPlayer}), which
      * is what lets the whole tooltip path stay server-loadable while still
      * reaching the real viewer on the client.</p>
      */
     private static Player viewer() {
         if (!CLIENT_DIST) return null;
         Minecraft mc = Minecraft.getInstance();
-        if (mc == null) return null;
         Object player = mc.player;
-        return player instanceof Player known ? known : null;
+        if (player == null) return null;
+        return (Player) player;
     }
 
     /** Whichever system recorded the owner, so gating can tell Tensura's apart. */

@@ -1,13 +1,12 @@
 package org.bitwisemadness.pseudocore;
 
-import org.bitwisemadness.pseudocore.util.DragonTints;
-import org.junit.jupiter.api.Test;
-
-import java.util.Map;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.util.Map;
+import org.bitwisemadness.pseudocore.util.DragonTints;
+import org.junit.jupiter.api.Test;
 
 /**
  * Pins the dragon tint palette (#51): the three elements, all twelve IaF

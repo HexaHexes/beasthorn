@@ -1,5 +1,8 @@
 package org.bitwisemadness.pseudocore.item;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -26,10 +29,6 @@ import org.bitwisemadness.pseudocore.registry.ModGameRules;
 import org.bitwisemadness.pseudocore.util.EntityDataHelper;
 import org.bitwisemadness.pseudocore.util.TensuraBridge;
 import org.bitwisemadness.pseudocore.util.TooltipHelper;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
 /**
  * The Pseudocore: captures any mob with its full NBT and releases it later.

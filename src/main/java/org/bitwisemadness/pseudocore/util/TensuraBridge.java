@@ -1,14 +1,13 @@
 package org.bitwisemadness.pseudocore.util;
 
+import java.util.Optional;
+import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.fml.ModList;
 import org.bitwisemadness.pseudocore.Pseudocore;
 import org.bitwisemadness.pseudocore.config.PseudocoreConfig;
-
-import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Tensura integration facade.

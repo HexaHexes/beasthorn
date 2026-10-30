@@ -1,5 +1,7 @@
 package org.bitwisemadness.pseudocore.gametest;
 
+import java.util.Set;
+import java.util.stream.Collectors;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestAssertException;
@@ -11,9 +13,6 @@ import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.bitwisemadness.pseudocore.Pseudocore;
 import org.bitwisemadness.pseudocore.registry.ModItems;
-
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * The tab is the only way to reach the item line without a recipe, so it is
