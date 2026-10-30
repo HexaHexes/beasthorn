@@ -3,7 +3,6 @@ package org.bitwisemadness.pseudocore.registry;
 import com.mojang.serialization.MapCodec;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.common.conditions.ICondition;
-import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import org.bitwisemadness.pseudocore.Pseudocore;
@@ -28,22 +27,29 @@ public final class ModConditions {
     public static final DeferredRegister<MapCodec<? extends ICondition>> CONDITION_CODECS =
             DeferredRegister.create(NeoForgeRegistries.Keys.CONDITION_CODECS, Pseudocore.MOD_ID);
 
-    /** True while Tensura is installed and its integration is switched on. */
-    public static final DeferredHolder<MapCodec<? extends ICondition>, MapCodec<? extends ICondition>> TENSURA_ACTIVE =
-            register("tensura_active", "tensura", PseudocoreConfig::tensuraIntegrationEnabled);
+    /**
+     * The shared condition <b>instances</b>, not just their codecs: datagen
+     * (#116) serializes a condition by looking its codec up in
+     * {@code NeoForgeRegistries.CONDITION_CODECS} by value identity, so the
+     * provider must emit <i>this</i> object - a fresh
+     * {@code new IntegrationActiveCondition(...)} would carry a different
+     * unit codec and fail the lookup. The supplier stays lazy: it is only
+     * consulted when a data pack is actually evaluated, never at
+     * construction or serialization.
+     */
+    public static final IntegrationActiveCondition TENSURA_ACTIVE = new IntegrationActiveCondition(
+            "tensura_active", () -> isLoaded("tensura") && PseudocoreConfig.tensuraIntegrationEnabled());
 
-    /** True while Ice and Fire CE is installed and its integration is switched on. */
-    public static final DeferredHolder<MapCodec<? extends ICondition>, MapCodec<? extends ICondition>>
-            ICE_AND_FIRE_ACTIVE =
-            register("iceandfire_active", "iceandfire", PseudocoreConfig::iceAndFireIntegrationEnabled);
+    /** See {@link #TENSURA_ACTIVE}: the shared instance the codecs register from. */
+    public static final IntegrationActiveCondition ICE_AND_FIRE_ACTIVE = new IntegrationActiveCondition(
+            "iceandfire_active", () -> isLoaded("iceandfire") && PseudocoreConfig.iceAndFireIntegrationEnabled());
 
-    private ModConditions() {
+    static {
+        CONDITION_CODECS.register("tensura_active", () -> TENSURA_ACTIVE.codec());
+        CONDITION_CODECS.register("iceandfire_active", () -> ICE_AND_FIRE_ACTIVE.codec());
     }
 
-    private static DeferredHolder<MapCodec<? extends ICondition>, MapCodec<? extends ICondition>> register(
-            String name, String modId, java.util.function.BooleanSupplier enabled) {
-        return CONDITION_CODECS.register(name, () -> new IntegrationActiveCondition(name,
-                () -> isLoaded(modId) && enabled.getAsBoolean()).codec());
+    private ModConditions() {
     }
 
     /**

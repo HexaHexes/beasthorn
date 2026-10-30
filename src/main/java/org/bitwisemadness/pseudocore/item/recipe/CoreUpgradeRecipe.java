@@ -16,6 +16,7 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.ShapedRecipe;
 import net.minecraft.world.item.crafting.ShapedRecipePattern;
 import org.bitwisemadness.pseudocore.Pseudocore;
+import org.bitwisemadness.pseudocore.registry.ModRecipes;
 
 /**
  * A shaped crafting recipe whose result carries the core input's components
@@ -26,9 +27,12 @@ import org.bitwisemadness.pseudocore.Pseudocore;
  * {@code crafting_transmute}, and this tree's only {@code copy_components} is
  * a loot function - so this subclass keeps every bit of vanilla's shape
  * machinery (pattern matching, mirroring, the JSON layout datapack authors
- * already know) and overrides exactly one step: {@link #assemble} starts
+ * already know) and overrides exactly the steps a shaped recipe cannot:
+ * {@link #assemble} starts
  * from vanilla's result and then copies <b>every</b> data component off the
- * core input. The mob itself, EP progress, IaF's horn storage, and the
+ * core input, and {@link #getSerializer()} names this recipe's own
+ * serializer so anything that <b>writes</b> recipes finds it. The mob
+ * itself, EP progress, IaF's horn storage, and the
  * addon's linkage stamp all ride the upgrade - an upgrade is a tier change,
  * not a reset.</p>
  *
@@ -39,6 +43,16 @@ import org.bitwisemadness.pseudocore.Pseudocore;
  * through this class's own copies plus the one public one
  * ({@code pattern}) - nothing package-private in {@link ShapedRecipe} is
  * touched from outside its package.</p>
+ *
+ * <p>{@link #getSerializer()} is the second override, and it is not
+ * optional: everything that <b>writes</b> a recipe - datagen (#116) first
+ * among them, recipe sync on the network path second - dispatches through
+ * the serializer registry via this method, while everything that
+ * <b>reads</b> one dispatches on the JSON {@code type} field and never
+ * consulted it. Inherited from {@link ShapedRecipe} it returned vanilla's
+ * {@code crafting_shaped}, so the first-ever serialization of this recipe
+ * (datagen) silently downgraded it to a plain shaped recipe - the
+ * component copy would have quietly vanished from the shipped data.</p>
  */
 public final class CoreUpgradeRecipe extends ShapedRecipe {
 
@@ -114,6 +128,19 @@ public final class CoreUpgradeRecipe extends ShapedRecipe {
             }
         }
         return null;
+    }
+
+    /**
+     * This recipe's serializer, not the inherited shaped one: readers
+     * dispatch on the JSON {@code type} and never needed this, but every
+     * <b>writer</b> - datagen (#116) and the recipe sync packet - does,
+     * and the inherited value serialized these recipes as plain
+     * {@code minecraft:crafting_shaped}, silently dropping the upgrade
+     * behaviour from the written data.
+     */
+    @Override
+    public RecipeSerializer<?> getSerializer() {
+        return ModRecipes.CORE_UPGRADE.get();
     }
 
     /** Vanilla's serializer shape, producing this recipe type. */

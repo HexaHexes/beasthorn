@@ -1,0 +1,26 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "pseudocore:tensura_active"
+    }
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": {
+      "item": "tensura:high_quality_magic_crystal"
+    },
+    "I": {
+      "tag": "c:ingots/hihiirokane"
+    }
+  },
+  "pattern": [
+    " I ",
+    "ICI",
+    " I "
+  ],
+  "result": {
+    "count": 1,
+    "id": "pseudocore:hihiirokane_pseudocore"
+  }
+}

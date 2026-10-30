@@ -1,0 +1,21 @@
+{
+  "type": "pseudocore:core_upgrade",
+  "category": "misc",
+  "key": {
+    "C": {
+      "item": "pseudocore:copper_pseudocore"
+    },
+    "I": {
+      "tag": "c:ingots/iron"
+    }
+  },
+  "pattern": [
+    " I ",
+    "ICI",
+    " I "
+  ],
+  "result": {
+    "count": 1,
+    "id": "pseudocore:iron_pseudocore"
+  }
+}

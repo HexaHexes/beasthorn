@@ -1,0 +1,21 @@
+{
+  "type": "pseudocore:core_upgrade",
+  "category": "misc",
+  "key": {
+    "C": {
+      "item": "pseudocore:gold_pseudocore"
+    },
+    "I": {
+      "tag": "c:ingots/netherite"
+    }
+  },
+  "pattern": [
+    " I ",
+    "ICI",
+    " I "
+  ],
+  "result": {
+    "count": 1,
+    "id": "pseudocore:netherite_pseudocore"
+  }
+}
