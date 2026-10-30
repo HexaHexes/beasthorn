@@ -1,0 +1,38 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:and",
+      "values": [
+        {
+          "type": "neoforge:mod_loaded",
+          "modid": "tensura"
+        },
+        {
+          "type": "neoforge:not",
+          "value": {
+            "type": "pseudocore:tensura_active"
+          }
+        }
+      ]
+    }
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "G": {
+      "tag": "c:gems"
+    },
+    "I": {
+      "tag": "c:ingots/high_magisteel"
+    }
+  },
+  "pattern": [
+    " I ",
+    "IGI",
+    " I "
+  ],
+  "result": {
+    "count": 1,
+    "id": "pseudocore:high_magisteel_pseudocore"
+  }
+}

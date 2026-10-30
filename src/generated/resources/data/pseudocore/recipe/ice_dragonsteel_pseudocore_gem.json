@@ -1,0 +1,41 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:and",
+      "values": [
+        {
+          "type": "neoforge:not",
+          "value": {
+            "type": "pseudocore:tensura_active"
+          }
+        },
+        {
+          "type": "neoforge:mod_loaded",
+          "modid": "iceandfire"
+        }
+      ]
+    }
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "B": {
+      "tag": "c:bones/dragon"
+    },
+    "D": {
+      "item": "iceandfire:dragonsteel_ice_ingot"
+    },
+    "G": {
+      "tag": "c:gems"
+    }
+  },
+  "pattern": [
+    "BDB",
+    "DGD",
+    "BDB"
+  ],
+  "result": {
+    "count": 1,
+    "id": "pseudocore:ice_dragonsteel_pseudocore"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "tensura"
+    }
+  ],
+  "type": "pseudocore:core_upgrade",
+  "category": "misc",
+  "key": {
+    "C": {
+      "item": "pseudocore:mithril_pseudocore"
+    },
+    "I": {
+      "tag": "c:ingots/orichalcum"
+    }
+  },
+  "pattern": [
+    " I ",
+    "ICI",
+    " I "
+  ],
+  "result": {
+    "count": 1,
+    "id": "pseudocore:orichalcum_pseudocore"
+  }
+}
