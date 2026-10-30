@@ -1,5 +1,7 @@
 package org.bitwisemadness.pseudocore.registry;
 
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
 import net.neoforged.fml.ModList;
@@ -7,9 +9,6 @@ import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import org.bitwisemadness.pseudocore.item.DragonPseudocoreItem;
 import org.bitwisemadness.pseudocore.item.PseudocoreItem;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * The beast line: one item per metal tier, in ascending tier order.

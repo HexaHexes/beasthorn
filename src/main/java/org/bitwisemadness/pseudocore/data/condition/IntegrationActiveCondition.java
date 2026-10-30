@@ -1,9 +1,8 @@
 package org.bitwisemadness.pseudocore.data.condition;
 
 import com.mojang.serialization.MapCodec;
-import net.neoforged.neoforge.common.conditions.ICondition;
-
 import java.util.function.BooleanSupplier;
+import net.neoforged.neoforge.common.conditions.ICondition;
 
 /**
  * A datapack condition that is true only while a named integration is both

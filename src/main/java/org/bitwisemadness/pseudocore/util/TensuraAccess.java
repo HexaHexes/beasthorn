@@ -3,14 +3,13 @@ package org.bitwisemadness.pseudocore.util;
 import io.github.manasmods.manascore.storage.api.StorageHolder;
 import io.github.manasmods.manascore.storage.api.StorageKey;
 import io.github.manasmods.tensura.storage.ep.ExistenceStorage;
+import java.util.Optional;
+import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
-
-import java.util.Optional;
-import java.util.UUID;
 
 /**
  * The only class in this addon that imports Tensura or ManasCore types.

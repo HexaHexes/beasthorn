@@ -3,6 +3,7 @@ package org.bitwisemadness.pseudocore.util;
 import com.iafenvoy.iceandfire.config.IafCommonConfig;
 import com.iafenvoy.iceandfire.entity.DragonBaseEntity;
 import com.iafenvoy.iceandfire.item.component.DragonHornComponent;
+import java.util.UUID;
 import net.minecraft.core.component.TypedDataComponent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -20,8 +21,6 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.fml.ModList;
 import org.bitwisemadness.pseudocore.item.DragonPseudocoreItem;
 import org.bitwisemadness.pseudocore.registry.ModGameRules;
-
-import java.util.UUID;
 
 /**
  * Reads and releases Ice and Fire's Dragon Horn storage.

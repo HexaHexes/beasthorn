@@ -1,9 +1,9 @@
 package org.bitwisemadness.pseudocore;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.bitwisemadness.pseudocore.util.DragonStages;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * The stage arithmetic behind the dragon tooltip (#48), pinned numerically.
